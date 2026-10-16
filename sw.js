@@ -1,5 +1,5 @@
 /* Service worker do App do Corretor: abre sem internet e guarda as fotos das fichas. */
-const VERSAO = 'corretor-20261015b';
+const VERSAO = 'corretor-20261015c';
 const CASCA = [
   './', 'index.html', 'app.css?v=20261015b', 'app.js?v=20261015b', 'manifest.webmanifest',
   'img/logo-fortal.png', 'icons/icon-192.png', 'icons/maskable-512.png', 'icons/apple-touch-icon.png', 'icons/favicon-64.png'
@@ -11,7 +11,8 @@ self.addEventListener('install', ev => {
   ev.waitUntil(caches.open(VERSAO).then(c => c.addAll(CASCA)).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', ev => {
-  ev.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== VERSAO && k !== FOTOS).map(k => caches.delete(k)))).then(() => self.clients.claim()));
+  // só apaga caches do próprio app: o Cache Storage é do site inteiro e o app dos Espelhos usa o mesmo endereço
+  ev.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith('corretor-') && k !== VERSAO && k !== FOTOS).map(k => caches.delete(k)))).then(() => self.clients.claim()));
 });
 
 async function aparar(){
