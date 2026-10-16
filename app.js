@@ -10,7 +10,7 @@
   const LOCAL = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);   // teste local: espelho copiado em /espelhos/
   const ESP = (NO_AR || LOCAL) ? '/espelhos/' : 'https://luizmiguel08.github.io/espelhos/';
   const FN_FOTO = CFG.url + '/functions/v1/corretor-foto';
-  const VERSAO = '2.0.1 · 16/10/2026';
+  const VERSAO = '2.1, de 16/10/2026';
   const K = {cod: 'espelhos-codigo', cor: 'espelhos-corretor', dono: 'espelhos-dono', cache: 'corretor-resumo-v2', tema: 'corretor-tema', filtro: 'corretor-filtro-v2'};
   const TZ = 'America/Sao_Paulo';
   const MQ_LARGO = matchMedia('(min-width: 1024px)');
@@ -157,7 +157,8 @@
     P: [], byId: new Map(), M: [], dias7: [], hoje: '', U: null, Uem: 0, Ucarregando: null, Uerro: false,
     det: new Map(), central: new Map(), centralV: new Map(), sel: new Map(),
     f: Object.assign(F0(), SS.get(K.filtro) || {}),
-    ui: {rank: 'vendas', feed: 'tudo', feedMostra: 14, tabModo: {}, tabFiltro: 'livres', tabSel: new Map(), tabAberta: null, tabQ: '', tabTipo: '', listaQ: '', bairroQ: '', unidMostra: 40},
+    ui: {rank: 'vendas', feed: 'tudo', feedMostra: 14, tabModo: {}, tabFiltro: 'livres', tabSel: new Map(), tabAberta: null, tabQ: '', tabTipo: '', listaQ: '', bairroQ: '', unidMostra: 40,
+      tabVista: LS.get('corretor-tab-vista') === 'lista' ? 'lista' : 'espelho', espDenso: LS.get('corretor-esp-denso') === '1', espPreco: true, ef: null, efMais: false},
     scroll: {}
   };
   if(S.f.perto && !(S.f.perto.lat && S.f.perto.lng)) S.f.perto = null;
@@ -380,6 +381,7 @@
     [/^#\/posts$/, 'posts', () => telaListaProjetos('posts')],
     [/^#\/posts\/([a-z0-9-]+)$/, 'posts', id => telaPost(id)],
     [/^#\/p\/([a-z0-9-]+)$/, 'imoveis', id => telaProjeto(id)],
+    [/^#\/comparar(?:\?([^#]*))?$/, 'comparar', qs => telaComparar(qs)],
     [/^#\/perfil$/, 'perfil', () => telaPerfil()]
   ];
   let rotaAtual = null, abaAtual = null;
@@ -420,7 +422,7 @@
     const h = location.hash || '#/';
     if(h === '#/imoveis') return atualizarImoveis();
     if(h === '#/tabelas' || h === '#/posts') return atualizarLista(h.slice(2));
-    if(/^#\/(p|tabelas|posts)\//.test(h) || h === '#/perfil') return;
+    if(/^#\/(p|tabelas|posts)\//.test(h) || h === '#/perfil' || /^#\/comparar/.test(h)) return;
     const ae = document.activeElement; if(ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) return;
     render();
   }
@@ -834,7 +836,7 @@
     });
     const n = nFiltros(f);
     return '<header class="pg-cab"><div><h1 class="t-1">Imóveis</h1><p class="sub" id="imv-sub">' + esc(plural(S.P.length, 'projeto', 'projetos') + ' nos espelhos, ao vivo') + '</p></div>' +
-      '<div class="seg seg-ver" role="group" aria-label="Ver por">' + [['projetos', 'Projetos', ICO.grade], ['unidades', 'Unidades', ICO.lista]].map(x => '<button type="button" data-acao="f-ver" data-v="' + x[0] + '" aria-pressed="' + (f.ver === x[0]) + '">' + x[2] + x[1] + '</button>').join('') + '</div></header>' +
+      '<div class="cab-acoes"><a class="btn btn-peq btn-fino" href="#/comparar">' + ICO.comparar + 'Comparar</a><div class="seg seg-ver" role="group" aria-label="Ver por">' + [['projetos', 'Projetos', ICO.grade], ['unidades', 'Unidades', ICO.lista]].map(x => '<button type="button" data-acao="f-ver" data-v="' + x[0] + '" aria-pressed="' + (f.ver === x[0]) + '">' + x[2] + x[1] + '</button>').join('') + '</div></div></header>' +
       '<div class="busca-linha"><label class="busca"><span class="sr">Buscar projeto, bairro, rua ou metrô</span>' + ICO.lupa +
       '<input id="q" type="search" enterkeyhint="search" autocomplete="off" placeholder="Projeto, bairro, rua ou metrô" value="' + esc(f.q) + '" data-input="q">' +
       '<button type="button" class="limpar" data-acao="limpar-q" aria-label="Limpar a busca"' + (f.q ? '' : ' hidden') + '>' + ICO.fechar + '</button></label>' +
@@ -1162,7 +1164,7 @@
       '<div class="legenda num"><span><i class="c-vd"></i>' + vend + ' vendidas</span><span><i class="c-rs"></i>' + (res + proc) + ' reservadas</span><span><i class="c-lv"></i>' + liv + ' livres</span></div></div>' +
       '<div class="acoes-proj"><button type="button" class="btn btn-pri btn-alto" data-acao="enviar" data-id="' + esc(p.id) + '">' + ICO.enviar + 'Mandar pro cliente</button>' +
       '<div class="btn-linha"><a class="btn" href="#/tabelas/' + esc(p.id) + '">' + ICO.planilha + 'Tabela</a><button type="button" class="btn" data-acao="menu-baixar" data-id="' + esc(p.id) + '">' + ICO.baixar + 'Baixar</button></div>' +
-      '<a class="btn btn-fino" href="#/posts/' + esc(p.id) + '">' + ICO.foto + 'Criar post para Instagram</a></div>' +
+      '<div class="btn-linha"><a class="btn btn-fino" href="#/comparar?p=' + encodeURIComponent(p.id) + '">' + ICO.comparar + 'Comparar</a><a class="btn btn-fino" href="#/posts/' + esc(p.id) + '">' + ICO.foto + 'Criar post</a></div></div>' +
       '<p class="nota">' + esc([tab.nome ? nomeTabela(tab.nome) : '', d.atualizado_em ? 'espelho lido ' + quandoTxt(Date.parse(d.atualizado_em)) : ''].filter(Boolean).join(', ')) + '.</p></section>';
   }
   function projetoHtml(p, det, c){
@@ -1326,8 +1328,9 @@
   function telaTabela(id){
     const p = S.byId.get(id);
     if(!p) return '<div class="vazio"><h2 class="t-3">Projeto não encontrado</h2><a class="btn" href="#/tabelas">Ver as tabelas</a></div>';
-    if(S.ui.tabProj !== id){ S.ui.tabProj = id; S.ui.tabTipo = S.ui.tabTipoPedido || ''; S.ui.tabQ = ''; S.ui.tabFiltro = 'livres'; S.ui.tabMostra = 150; S.ui.tabAberta = null; }
-    else if(S.ui.tabTipoPedido) S.ui.tabTipo = S.ui.tabTipoPedido;
+    if(S.ui.tabProj !== id){ S.ui.tabProj = id; S.ui.tabQ = ''; S.ui.tabFiltro = 'livres'; S.ui.tabMostra = 150; S.ui.tabAberta = null; S.ui.ef = null; S.ui.efMais = false; }
+    const ef = espFiltro(id);
+    if(S.ui.tabTipoPedido){ ef.tb = S.ui.tabTipoPedido === 'Outras unidades' ? null : S.ui.tabTipoPedido; ef.st = 'disponivel'; }
     S.ui.tabTipoPedido = '';
     const cache = S.det.get(id), det = cache && cache.v;
     const visto = det ? det.gerado_em : null;
@@ -1339,6 +1342,7 @@
       '<div class="bt-tit"><h1>' + esc(p.nome) + '</h1><p class="sub">' + esc([quemDe(p), p.bairro].filter(Boolean).join(', ')) + '</p></div>' +
       '<div class="bt-acoes"><button type="button" class="btn btn-peq" data-acao="planilha-tabela" data-id="' + esc(id) + '" aria-label="Baixar a tabela em planilha">' + ICO.planilha + '<span class="so-largo">Planilha</span></button>' +
       '<button type="button" class="btn btn-peq" data-acao="pdf-tabela" data-id="' + esc(id) + '" aria-label="Baixar a tabela em PDF">' + ICO.imprimir + '<span class="so-largo">PDF</span></button>' +
+      '<a class="btn btn-peq" href="#/comparar?p=' + encodeURIComponent(id) + '" aria-label="Comparar com outros projetos">' + ICO.comparar + '<span class="so-largo">Comparar</span></a>' +
       '<a class="btn btn-peq so-largo" href="#/p/' + esc(id) + '">Ficha ' + ICO.seta + '</a></div></div>';
     if(!det) return topo + '<div class="esqueleto" aria-busy="true"><div class="brilho" style="height:40px"></div><div class="brilho" style="height:60px"></div><div class="brilho" style="height:60px"></div><div class="brilho" style="height:60px"></div></div>';
     return topo + tabelaHtml(p, det);
@@ -1349,42 +1353,44 @@
     for(const m of (det.mov || [])){ if(Date.now() - m[3] * 1000 < 36 * 3600e3 && !r.has(String(m[0]))) r.set(String(m[0]), m); }
     return r;
   }
-  function unidadesTabela(p, det, modo){
-    const d = det.dados, fil = S.ui.tabFiltro, q = norm(S.ui.tabQ).trim(), tt = S.ui.tabTipo;
-    const recentes = recentesDe(det);
-    let us = (d.unidades || []).slice();
-    const cont = {livres: us.filter(a => a[6] === 'disponivel').length, todas: us.length, mov: us.filter(a => recentes.has(String(a[0]))).length};
-    if(fil === 'livres') us = us.filter(a => a[6] === 'disponivel');
-    else if(fil === 'mov') us = us.filter(a => recentes.has(String(a[0])));
-    if(tt) us = us.filter(a => (tipologiaU(det, a) || 'Outras unidades') === tt);
-    if(q) us = us.filter(a => norm(a[0]).includes(q) || norm(tipologiaU(det, a) || '').includes(q));
-    const andN = v => v === 'T' || v === 'S' || v === 'L' ? 0 : (+v || 0);
+  function unidadesTabela(p, det, modo){   // a lista usa os mesmos filtros do espelho, mais Livres / Mexeram / Todas
+    const fil = S.ui.tabFiltro, q = norm(S.ui.tabQ).trim(), f = espFiltro(p.id);
+    const U = espUnidades(det, S.centralV.get(p.id) || null), recentes = recentesDe(det);
+    const base = U.filter(u => espBate(u, f, modo));
+    const cont = {livres: base.filter(u => u.st === 'disponivel').length, todas: base.length, mov: base.filter(u => recentes.has(u.n)).length};
+    let sel = base;
+    if(fil === 'livres') sel = sel.filter(u => u.st === 'disponivel');
+    else if(fil === 'mov') sel = sel.filter(u => recentes.has(u.n));
+    if(q) sel = sel.filter(u => norm(u.n).includes(q) || norm(u.tl).includes(q));
+    const us = sel.map(u => u.a);
+    const andN = v => v === 'T' || v === 'S' || v === 'L' || v === 'G' ? 0 : (+v || 0);
     us.sort((x, y) => fil === 'livres' ? ((precoU(x, modo) || 1e12) - (precoU(y, modo) || 1e12)) : (andN(y[4]) - andN(x[4])) || String(x[0]).localeCompare(String(y[0]), 'pt-BR', {numeric: true}));
     return {us, cont, recentes};
   }
   function tabelaHtml(p, det){
-    const d = det.dados, pc = precosCampos(det).slice(0, 3), modo = modoTabela(p, det);
-    const todasT = new Set((d.unidades || []).map(a => tipologiaU(det, a) || 'Outras unidades'));
-    if(S.ui.tabTipo && !todasT.has(S.ui.tabTipo)) S.ui.tabTipo = '';
-    const {cont} = unidadesTabela(p, det, modo);
-    const tipos = [...new Set((d.unidades || []).filter(a => S.ui.tabFiltro !== 'livres' || a[6] === 'disponivel').map(a => tipologiaU(det, a) || 'Outras unidades'))];
+    const d = det.dados, pc = precosCampos(det).slice(0, 3), modo = modoTabela(p, det), vista = vistaTab(det);
     const tab = d.tabela || {};
     const lido = d.atualizado_em ? quandoTxt(Date.parse(d.atualizado_em)) : '';
     const tabEm = tab.atualizado_em ? quandoTxt(Date.parse(tab.atualizado_em)) : '';
+    if(!S.centralV.has(p.id)) pos.push(() => fichaCentral(p.id).then(c => { if(c && location.hash === '#/tabelas/' + p.id) atualizarTabela(); }).catch(() => {}));
+    if(S.ui.tabQ && vista === 'espelho') pos.push(() => setTimeout(espRolarAchada, 60));
     return '<div class="tab-ctl">' +
       '<p class="sub">' + esc([tab.nome ? nomeTabela(tab.nome) : 'Sem tabela publicada', tabEm ? 'atualizada ' + tabEm : ''].filter(Boolean).join(', ')) + '. Espelho lido ' + esc(lido || 'hoje') + '.</p>' +
-      '<div class="tab-ctl-lin">' + (pc.length > 1 ? '<div class="seg" role="group" aria-label="Preço mostrado">' + pc.map(x => '<button type="button" data-acao="tab-modo" data-id="' + esc(p.id) + '" data-v="' + esc(x.k) + '" aria-pressed="' + (modo === x.k) + '">' + esc(x.label) + '</button>').join('') + '</div>' : '') +
-      '<label class="busca mini"><span class="sr">Buscar unidade</span>' + ICO.lupa + '<input type="search" inputmode="search" autocomplete="off" placeholder="Unidade ou tipologia" value="' + esc(S.ui.tabQ) + '" data-input="tab-q"></label></div>' +
-      '<div class="pilulas rola" role="group" aria-label="Quais unidades">' + [['livres', 'Livres', cont.livres], ['mov', 'Mexeram hoje e ontem', cont.mov], ['todas', 'Todas', cont.todas]].map(x => '<button type="button" class="pilula peq" data-acao="tab-fil" data-v="' + x[0] + '" aria-pressed="' + (S.ui.tabFiltro === x[0]) + '">' + esc(x[1]) + '<span class="n">' + x[2] + '</span></button>').join('') + '</div>' +
-      (tipos.length > 1 ? '<div class="pilulas rola" role="group" aria-label="Tipologia"><button type="button" class="pilula peq" data-acao="tab-tipo-f" data-v="" aria-pressed="' + !S.ui.tabTipo + '">Todas as tipologias</button>' + tipos.map(t => '<button type="button" class="pilula peq" data-acao="tab-tipo-f" data-v="' + esc(t) + '" aria-pressed="' + (S.ui.tabTipo === t) + '">' + esc(t) + '</button>').join('') + '</div>' : '') +
+      '<div class="tab-ctl-lin">' +
+      (espTemGrade(det) ? '<div class="seg seg-vista" role="group" aria-label="Como ver as unidades"><button type="button" data-acao="tab-vista" data-v="espelho" aria-pressed="' + (vista === 'espelho') + '">' + ICO.predio + 'Espelho</button><button type="button" data-acao="tab-vista" data-v="lista" aria-pressed="' + (vista === 'lista') + '">' + ICO.lista + 'Lista</button></div>' : '') +
+      (pc.length > 1 ? '<div class="seg" role="group" aria-label="Preço mostrado">' + pc.map(x => '<button type="button" data-acao="tab-modo" data-id="' + esc(p.id) + '" data-v="' + esc(x.k) + '" aria-pressed="' + (modo === x.k) + '">' + esc(x.label) + '</button>').join('') + '</div>' : '') +
+      '<label class="busca mini"><span class="sr">Buscar unidade</span>' + ICO.lupa + '<input type="search" inputmode="search" autocomplete="off" placeholder="' + (vista === 'espelho' ? 'Nº da unidade' : 'Unidade ou tipologia') + '" value="' + esc(S.ui.tabQ) + '" data-input="tab-q"></label></div>' +
       (tab.regra_curta ? '<p class="nota">' + esc(tab.regra_curta) + '</p>' : '') + '</div>' +
       '<div id="tab-lista">' + tabListaHtml(p, det) + '</div>';
   }
   function tabListaHtml(p, det){
+    if(vistaTab(det) === 'espelho') return espelhoCorpoHtml(p, det);
     const pc = precosCampos(det).slice(0, 3), modo = modoTabela(p, det);
     const sel = S.ui.tabSel.get(p.id) || new Set();
-    const {us, recentes} = unidadesTabela(p, det, modo);
-    let h = '';
+    const {us, cont, recentes} = unidadesTabela(p, det, modo);
+    const c = S.centralV.get(p.id) || null;
+    let h = '<div class="pilulas rola tab-fil" role="group" aria-label="Quais unidades">' + [['livres', 'Livres', cont.livres], ['mov', 'Mexeram hoje e ontem', cont.mov], ['todas', 'Todas', cont.todas]].map(x => '<button type="button" class="pilula peq" data-acao="tab-fil" data-v="' + x[0] + '" aria-pressed="' + (S.ui.tabFiltro === x[0]) + '">' + esc(x[1]) + '<span class="n">' + x[2] + '</span></button>').join('') + '</div>' +
+      espChipsHtml(espUnidades(det, c), espFiltro(p.id), modo, det, recentes, c, true);
     if(!us.length) h += '<p class="texto-2 vazio-txt">' + (S.ui.tabQ.trim() ? 'Nenhuma unidade com “' + esc(S.ui.tabQ.trim()) + '”.' : S.ui.tabFiltro === 'livres' ? 'Nenhuma unidade livre com esse filtro.' : S.ui.tabFiltro === 'mov' ? 'Nenhuma unidade mexeu nas últimas 36 horas.' : 'Nada com esse filtro.') + '</p>';
     const lim = S.ui.tabMostra || 150;
     const temPv = pc.some(x => x.k === 'pv') && modo !== 'pv';
@@ -1393,7 +1399,7 @@
         us.slice(0, lim).map(a => linhaTabela(p, det, a, modo, sel, recentes, temPv)).join('') + '</div>';
     }else if(us.length) h += '<div class="unid" role="list">' + us.slice(0, lim).map(a => unidadeHtml(p, det, a, modo, sel, recentes)).join('') + '</div>';
     if(us.length > lim) h += '<button type="button" class="btn btn-largo" data-acao="tab-mais">Mostrar mais ' + Math.min(200, us.length - lim) + ' de ' + (us.length - lim) + '</button>';
-    if(sel.size) h += '<div class="barra-envio"><p><span><b class="num">' + sel.size + '</b> ' + (sel.size === 1 ? 'unidade' : 'unidades') + '</span><small>' + (sel.size === 1 ? 'marcada' : 'marcadas') + '</small></p><button type="button" class="btn" data-acao="tab-limpar" data-id="' + esc(p.id) + '">Limpar</button><button type="button" class="btn btn-pri" data-acao="enviar" data-id="' + esc(p.id) + '" data-sel="1">' + ICO.enviar + '<span>Mandar<span class="so-largo"> pro cliente</span></span></button></div>';
+    if(sel.size) h += barraTabelaHtml(p, sel);
     return h;
   }
   function atualizarTabela(){   // repinta só a lista, sem mexer na busca nem nos botões de cima
@@ -1401,9 +1407,12 @@
     if(!m || !box) return;
     const p = S.byId.get(m[1]), c = S.det.get(m[1]), det = c && c.v;
     if(!p || !det) return;
-    const ae = document.activeElement, foco = ae && box.contains(ae) && ae.dataset ? (ae.dataset.acao || '') + '|' + (ae.dataset.n || '') : null;
+    const ae = document.activeElement, foco = ae && box.contains(ae) && ae.dataset ? (ae.dataset.acao || '') + '|' + (ae.dataset.n || '') + '|' + (ae.dataset.k || '') + '|' + (ae.dataset.v || '') : null;
+    const rola = $('.ep-rola', box), lado = rola ? rola.scrollLeft : 0, ops = $$('.ef-ops', box).map(e => e.scrollLeft);
     box.innerHTML = tabListaHtml(p, det);
-    if(foco){ const [a, n] = foco.split('|'); const el = $$('[data-acao="' + a + '"]', box).find(e => (e.dataset.n || '') === n); if(el) el.focus({preventScroll: true}); }
+    const r2 = $('.ep-rola', box); if(r2 && lado) r2.scrollLeft = lado;
+    $$('.ef-ops', box).forEach((e, i) => { if(ops[i]) e.scrollLeft = ops[i]; });
+    if(foco){ const [a, n, k, v] = foco.split('|'); const el = $$('[data-acao="' + a + '"]', box).find(e => (e.dataset.n || '') === n && (e.dataset.k || '') === k && (e.dataset.v || '') === v) || $$('[data-acao="' + a + '"]', box).find(e => (e.dataset.n || '') === n); if(el) el.focus({preventScroll: true}); }
   }
   function stDe(det, a, m){
     const livre = a[6] === 'disponivel';
@@ -1494,9 +1503,9 @@
     if(!cli){ erro('Digite o nome do cliente.'); $('#env-cli').focus(); return; }
     let itens, p = null, formato = 'selecao', texto;
     if(st.multi){
-      itens = [...S.sel.values()].map(v => ({p: v.p, n: v.n}));
+      itens = st.itens || [...S.sel.values()].map(v => ({p: v.p, n: v.n}));
       if(!itens.length){ erro('Nenhuma unidade marcada.'); return; }
-      texto = textoBusca(S.f);
+      texto = st.texto || textoBusca(S.f);
     }else{
       p = S.byId.get(st.id);
       const us = $$('#env-us input:checked').map(i => i.value);
@@ -1517,13 +1526,13 @@
         avisos = !!r.avisos;
       }else{
         const r = await rpc('selecao_criar', {p_codigo: S.cod, p_dono: dono(), p_endpoint: null, p_cliente: cli, p_corretor: cor, p_whats: tel,
-          p_busca: {texto, modo: st.modo, criterios: {}, origem: 'app'}, p_itens: itens});
+          p_busca: Object.assign({texto, modo: st.modo, criterios: {}, origem: 'app'}, st.cmp ? {cmp: st.cmp} : {}), p_itens: itens});
         url = new URL(ESP + 's.html?s=' + encodeURIComponent(r.id), location.href).href;
         avisos = !!r.avisos;
       }
       const qtd = itens.length, nome1 = primeiroNome(cli);
       const msg = 'Olá, ' + nome1 + '! ' + (formato === 'ficha' ? 'Separei a ficha do ' + p.nome + ' para você, com fotos, plantas e os valores: '
-        : st.multi ? 'Separei ' + (qtd === 1 ? 'uma opção' : qtd + ' opções') + ' para você, com fotos e valores: ' : 'Separei ' + (qtd === 1 ? 'uma opção' : qtd + ' opções') + ' do ' + p.nome + ' para você, com fotos e valores: ') + url;
+        : st.cmp ? 'Separei ' + qtd + ' opções para você comparar lado a lado, com fotos e valores: ' : st.multi ? 'Separei ' + (qtd === 1 ? 'uma opção' : qtd + ' opções') + ' para você, com fotos e valores: ' : 'Separei ' + (qtd === 1 ? 'uma opção' : qtd + ' opções') + ' do ' + p.nome + ' para você, com fotos e valores: ') + url;
       S.envioPronto = {url, msg};
       const dlg = $('#folha-envio'); if(!dlg) return;
       corpoFolha('<div class="aviso ok" role="status">' + ICO.ok + '<p>Link pronto para ' + esc(nome1) + '. ' + (formato === 'ficha' ? 'Ficha completa' : 'Página') + ' com ' + esc(plural(qtd, 'unidade', 'unidades')) + '.' + (avisos ? ' Você recebe um aviso neste aparelho quando ' + esc(nome1) + ' abrir.' : '') + '</p></div>' +
@@ -1531,7 +1540,7 @@
         '<p class="link-pronto">' + esc(url) + '</p>' +
         '<a class="btn" href="' + esc(url) + '" target="_blank" rel="noopener">Ver como o cliente vê ' + ICO.seta + '</a>',
         '<button type="button" class="btn" data-acao="env-copiar">' + ICO.copiar + 'Copiar</button><a class="btn btn-pri" id="env-wa" href="https://wa.me/?text=' + encodeURIComponent(msg) + '" target="_blank" rel="noopener" data-acao="env-wa">' + ICO.zap + 'WhatsApp</a>', dlg);
-      if(st.multi){ S.sel.clear(); if(location.hash === '#/imoveis') atualizarImoveis(); }
+      if(st.multi){ if(!st.cmp) S.sel.clear(); if(location.hash === '#/imoveis') atualizarImoveis(); }
       else{ S.ui.tabSel.delete(p.id); atualizarTabela(); }
     }catch(e){
       b.disabled = false; b.innerHTML = ICO.enviar + 'Criar o link';
@@ -1749,6 +1758,556 @@
     catch(e){ if(aviso && vez === st.vez) aviso.textContent = 'Essa foto não deixa salvar a arte. Escolha outra ou use uma do aparelho.'; }
   }
   const nomeArquivoPost = () => { const p = S.byId.get(S.post.id); return 'post-' + (p ? slug(p.nome) : 'fortal') + '-' + S.post.fmt + '.jpg'; };
+
+  // ================= ESPELHO DO PRÉDIO (como no app dos Espelhos: andares x finais, cor pela situação) =================
+  ICO.predio = svg('<rect x="4" y="3" width="16" height="18" rx="1.5"/><path d="M8 7h2M14 7h2M8 11h2M14 11h2M8 15h2M14 15h2M11 21v-3h2v3"/>');
+  ICO.comparar = svg('<rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/>', 1.9);
+  const ST_ORDEM = ['disponivel', 'reservada', 'processo_final', 'vendida'];
+  const ST_TILE = {disponivel: 'Disponíveis', reservada: 'Reservadas', processo_final: 'Em processo', vendida: 'Vendidas'};
+  const FX_PADRAO = [[25, 'até 25 m²'], [30, '25 a 30 m²'], [35, '30 a 35 m²'], [45, '35 a 45 m²'], [70, '45 a 70 m²'], [9999, 'acima de 70 m²']];
+  const ordTB = s => { const t = norm(s); return /^stud/.test(t) ? 0 : /^1/.test(t) ? 1 : /^2/.test(t) ? 2 : /^3/.test(t) ? 3 : /^4/.test(t) ? 4 : /loja/.test(t) ? 9 : 5; };
+  const tipoKDe = s => { const t = norm(s); return /^stud|^kitn/.test(t) ? 'S' : /^1/.test(t) ? '1' : /^2/.test(t) ? '2' : /^[3-9]/.test(t) ? '3' : /loja/.test(t) ? 'L' : null; };
+  const vagaRot = n => n == null ? null : n === 0 ? 'Sem vaga' : n === 1 ? '1 vaga' : n + ' vagas';
+  const andarRot = v => v === 'T' ? 'Térreo' : v === 'S' ? 'Subsolo' : v === 'L' ? 'Loja' : v === 'G' ? 'Garden' : /^\d+$/.test(String(v)) ? v + 'º' : String(v == null ? '' : v);
+  const kmil = v => v >= 1e6 ? (Math.round(v / 1e4) / 100).toLocaleString('pt-BR') + ' mi' : Math.round(v / 1e3).toLocaleString('pt-BR') + ' mil';
+  const m2c = v => (Math.round(v * 10) / 10).toLocaleString('pt-BR') + ' m²';
+  const catNomeDe = (det, c) => (det.dados.cat_nome && det.dados.cat_nome[c]) || c;
+  const EF0 = () => ({st: 'todos', mov: false, tb: null, fx: null, tipo: null, cat: null, final: null, vista: null, vaga: null, pmax: null});
+  const EF_ROT = {tb: 'Tipologia', fx: 'Metragem', tipo: 'Planta', cat: 'Enquadramento', vista: 'Vista', vaga: 'Vaga', pmax: 'Valor até', final: 'Final'};
+  const espTemGrade = det => !!(det && det.dados && det.dados.grade && +det.dados.grade.colunas > 0 && Array.isArray(det.dados.grade.andares) && det.dados.grade.andares.length);
+  const vistaTab = det => espTemGrade(det) && S.ui.tabVista !== 'lista' ? 'espelho' : 'lista';
+  function espFiltro(id){ if(!S.ui.ef || S.ui.ef.pid !== id) S.ui.ef = Object.assign(EF0(), {pid: id}); return S.ui.ef; }
+  function espFaixas(det, c){
+    const f = c && Array.isArray(c.faixas) && c.faixas.length ? c.faixas : (Array.isArray(det.dados.faixas) && det.dados.faixas.length ? det.dados.faixas : FX_PADRAO);
+    return f.filter(x => Array.isArray(x) && x.length >= 2 && +x[0] > 0).map(x => [+x[0], String(x[1])]).sort((x, y) => x[0] - y[0]);
+  }
+  const espFaixa = (FX, ar) => { if(!(ar > 0) || !FX.length) return null; for(const x of FX) if(ar <= x[0]) return x[1]; return FX[FX.length - 1][1]; };
+  const _espU = new WeakMap();
+  function espUnidades(det, c){   // unidades do espelho com o que os filtros e o mapa usam (guardado por leitura)
+    const ch = _espU.get(det); if(ch && ch.c === c) return ch.U;
+    const d = det.dados, G = d.grade || {}, rot = Array.isArray(G.rotulos_colunas) ? G.rotulos_colunas : null, FX = espFaixas(det, c);
+    const tlCentral = tipo => {   // sem tipologia no espelho: a da planta daquele tipo na ficha da central ("Studio com closet 21 m²" vira Studio)
+      if(!tipo || !c || !Array.isArray(c.plantas)) return '';
+      const pl = c.plantas.find(x => Array.isArray(x.tipos) && x.tipos.map(String).includes(tipo)); if(!pl) return '';
+      const t = norm(pl.t); return /^stud|^kitn/.test(t) ? 'Studio' : /^1 dorm/.test(t) ? '1 dorm' : /^2 dorm/.test(t) ? '2 dorms' : /^3 dorm/.test(t) ? '3 dorms' : /^4 dorm/.test(t) ? '4 dorms' : '';
+    };
+    const U = (d.unidades || []).map(a => {
+      const ar = areaU(a), tl = tipologiaU(det, a) || tlCentral(a[1] ? String(a[1]) : '') || '', col = +a[5] || 0, loja = a[4] === 'L' || /^loja/i.test(tl);
+      const vi = (Array.isArray(d.vistas) ? d.vistas : []).find(v => col >= +v.col_ini && col <= +v.col_fim);
+      return {a, n: String(a[0]), tipo: a[1] ? String(a[1]) : null, ar, tl, cat: a[3] || null, andar: a[4], col, st: a[6], loja,
+        vista: vi ? vi.id : null, final: rot && !loja && rot[col] != null ? String(rot[col]) : null, fx: espFaixa(FX, ar), vg: vagaDe(det, a)};
+    });
+    _espU.set(det, {c, U});
+    return U;
+  }
+  function espBate(u, f, modo, ign){   // filtros de unidade (menos a situação)
+    if(ign !== 'tb' && f.tb && u.tl !== f.tb) return false;
+    if(ign !== 'fx' && f.fx && u.fx !== f.fx) return false;
+    if(ign !== 'tipo' && f.tipo && u.tipo !== f.tipo) return false;
+    if(ign !== 'cat' && f.cat && u.cat !== f.cat) return false;
+    if(ign !== 'final' && f.final && u.final !== f.final) return false;
+    if(ign !== 'vista' && f.vista && u.vista !== f.vista) return false;
+    if(ign !== 'vaga' && f.vaga && vagaRot(u.vg) !== f.vaga) return false;
+    if(ign !== 'pmax' && f.pmax){ const v = precoU(u.a, modo); if(!(v > 0) || v > f.pmax) return false; }
+    return true;
+  }
+  const espStBate = (u, f, recentes) => (f.st === 'todos' || u.st === f.st) && (!f.mov || recentes.has(u.n));
+  const efAtivos = f => ['tb', 'fx', 'tipo', 'cat', 'final', 'vista', 'vaga', 'pmax'].filter(k => f[k] != null && f[k] !== '');
+  function efResumo(f){   // "Studio, até 25 m², até R$ 190 mil"
+    return efAtivos(f).map(k => k === 'pmax' ? 'até ' + BRLc(f.pmax) : k === 'final' ? 'final ' + f.final : k === 'tipo' ? String(f.tipo).replace(/^TIPO /i, 'tipo ') : String(f[k])).join(', ');
+  }
+  function espPassos(U, modo){   // "valor até": quartis arredondados dos preços das livres
+    const vs = U.filter(u => u.st === 'disponivel').map(u => precoU(u.a, modo)).filter(v => v > 0).sort((x, y) => x - y);
+    if(vs.length < 4) return [];
+    const arred = v => v >= 1e6 ? Math.ceil(v / 5e4) * 5e4 : Math.ceil(v / 1e4) * 1e4;
+    const out = [];
+    for(const q of [.2, .4, .6, .8]){ const v = arred(vs[Math.min(vs.length - 1, Math.floor(q * vs.length))]); if(!out.includes(v) && v < vs[vs.length - 1]) out.push(v); }
+    return out;
+  }
+
+  // ---------- controles: blocos de situação e filtros com contagem das livres ----------
+  function espTilesHtml(U, f, modo, det, recentes){
+    const base = U.filter(u => espBate(u, f, modo) && (!f.mov || recentes.has(u.n)));
+    const tot = base.length, sts = ST_ORDEM.filter(s => U.some(u => u.st === s));
+    const rotSt = s => { if(s !== 'processo_final') return ST_TILE[s]; const l = stLabel(det, s); return l.length <= 16 ? l : ST_TILE[s]; };
+    const CURTO = {todos: 'Total', disponivel: 'Disp.', reservada: 'Reserv.', processo_final: /^pend/i.test(stLabel(det, 'processo_final')) ? 'Pend.' : 'Proc.', vendida: 'Vend.'};
+    const tile = (st, rot, n) => '<button type="button" class="ef-tile s-' + st + '" data-acao="ef-st" data-v="' + st + '" aria-pressed="' + (f.st === st) + '" aria-label="' + esc(rot + ': ' + n.toLocaleString('pt-BR')) + '"><span class="ef-tr"><i aria-hidden="true"></i><span class="l-longo">' + esc(rot) + '</span><span class="l-curto" aria-hidden="true">' + esc(CURTO[st] || rot) + '</span></span><b class="num">' + n.toLocaleString('pt-BR') + '</b><small>' + (st === 'todos' ? 'no filtro' : tot ? Math.round(n / tot * 100) + '%' : '0%') + '</small></button>';
+    return '<div class="ef-tiles" style="--n:' + (sts.length + 1) + '">' + tile('todos', 'Total', tot) + sts.map(s => tile(s, rotSt(s), base.filter(u => u.st === s).length)).join('') + '</div>';
+  }
+  function espChipsHtml(U, f, modo, det, recentes, c, emLista){
+    const disp = U.filter(u => u.st === 'disponivel');
+    const conta = (k, pred) => disp.filter(u => pred(u) && espBate(u, f, modo, k)).length;
+    const linha = (k, vals, sempre) => {
+      const ops = vals.map(([v, l, pred]) => ({v, l, n: conta(k, pred)})).filter(o => o.n > 0 || String(f[k]) === String(o.v));
+      if(!sempre && ops.length < 2 && f[k] == null) return '';
+      if(!ops.length) return '';
+      return '<div class="ef-lin"><span class="ef-rot">' + esc(EF_ROT[k]) + '</span><div class="ef-ops" role="group" aria-label="' + esc(EF_ROT[k]) + '">' +
+        '<button type="button" class="pilula peq" data-acao="ef" data-k="' + k + '" data-v="" aria-pressed="' + (f[k] == null) + '">Todas</button>' +
+        ops.map(o => '<button type="button" class="pilula peq" data-acao="ef" data-k="' + k + '" data-v="' + esc(o.v) + '" aria-pressed="' + (String(f[k]) === String(o.v)) + '">' + esc(o.l) + '<span class="n">' + o.n + '</span></button>').join('') + '</div></div>';
+    };
+    const tls = [...new Set(U.map(u => u.tl).filter(Boolean))].sort((x, y) => ordTB(x) - ordTB(y) || x.localeCompare(y, 'pt-BR', {numeric: true}));
+    const FX = espFaixas(det, c);
+    const fxs = FX.map(x => x[1]).filter(l => U.some(u => u.fx === l));
+    const tipos = [...new Set(U.map(u => u.tipo).filter(Boolean))].sort((x, y) => x.localeCompare(y, 'pt-BR', {numeric: true}));
+    const arTipo = t => { const u = U.find(x => x.tipo === t && x.ar); return u ? ', ' + m2c(u.ar) : ''; };
+    const cats = [...new Set(U.map(u => u.cat).filter(Boolean))].sort((x, y) => catNomeDe(det, x).localeCompare(catNomeDe(det, y), 'pt-BR'));
+    const vistas = Array.isArray(det.dados.vistas) ? det.dados.vistas : [];
+    const vagas = [...new Set(U.map(u => vagaRot(u.vg)).filter(Boolean))].sort((x, y) => (x === 'Sem vaga' ? 0 : parseInt(x, 10)) - (y === 'Sem vaga' ? 0 : parseInt(y, 10)));
+    const passos = espPassos(U, modo);
+    const linhas = [
+      linha('tb', tls.map(t => [t, t, u => u.tl === t]), true),
+      linha('fx', fxs.map(l => [l, l, u => u.fx === l])),
+      linha('pmax', passos.map(v => [v, 'até ' + BRLc(v), u => { const x = precoU(u.a, modo); return x > 0 && x <= v; }])),
+      tipos.length > 1 ? linha('tipo', tipos.map(t => [t, String(t).replace(/^TIPO /i, 'Tipo ') + arTipo(t), u => u.tipo === t])) : '',
+      cats.length > 1 ? linha('cat', cats.map(c => [c, catNomeDe(det, c), u => u.cat === c])) : '',
+      vistas.length ? linha('vista', vistas.map(v => [v.id, v.label, u => u.vista === v.id])) : '',
+      vagas.length > 1 ? linha('vaga', vagas.map(v => [v, v, u => vagaRot(u.vg) === v])) : ''
+    ].filter(Boolean);
+    const extras = linhas.slice(2), abertos = S.ui.efMais || efAtivos(f).some(k => !['tb', 'fx', 'final'].includes(k));
+    const ativos = efAtivos(f);
+    const nMov = U.filter(u => recentes.has(u.n) && espBate(u, f, modo)).length;
+    return '<div class="ef-filtros">' + linhas.slice(0, 2).join('') + (abertos ? extras.join('') : '') +
+      '<div class="ef-acoes">' + (extras.length ? '<button type="button" class="link-mais" data-acao="ef-mais" aria-expanded="' + abertos + '">' + (abertos ? 'Menos filtros' : 'Mais filtros<span class="l-longo">: ' + esc(extras.map(h => (/class="ef-rot">([^<]+)/.exec(h) || [])[1]).filter(Boolean).join(', ').toLowerCase()) + '</span>') + ' ' + ICO.baixo + '</button>' : '') +
+      (!emLista && (nMov || f.mov) ? '<button type="button" class="pilula peq" data-acao="ef-mov" aria-pressed="' + !!f.mov + '">Mexeram hoje e ontem<span class="n">' + nMov + '</span></button>' : '') +
+      (f.final ? '<button type="button" class="pilula peq" data-acao="ef" data-k="final" data-v="" aria-label="Tirar o filtro do final ' + esc(f.final) + '">Final ' + esc(f.final) + ICO.x + '</button>' : '') +
+      (ativos.length || (!emLista && (f.st !== 'todos' || f.mov)) ? '<button type="button" class="link-mais" data-acao="ef-limpar">Limpar filtros</button>' : '') + '</div></div>';
+  }
+
+  // ---------- o mapa ----------
+  function espCelula(u, rr, ok, modo, sel, recentes, q, multiCat, det){
+    const v = precoU(u.a, modo), mk = sel.has(u.n), mv = recentes.get(u.n), achou = q && norm(u.n) === q;
+    const vend = u.st === 'vendida', tag = '';   // o enquadramento fica no filtro e na ficha da unidade: na célula não cabe
+    const desc = ['Unidade ' + u.n, andarTxt(u.andar), u.tl, u.ar ? m2c(u.ar) : '', u.cat ? catNomeDe(det, u.cat) : '', v && !vend ? BRL(v) : '', stLabel(det, u.st)].filter(Boolean).join(', ');
+    return '<button type="button" class="ep-u s-' + esc(u.st) + (ok ? '' : ' off') + (mk ? ' marc' : '') + (mv ? ' mov' : '') + (achou ? ' achou' : '') + '" data-acao="esp-u" data-n="' + esc(u.n) + '" style="grid-row:' + rr + ';grid-column:' + (u.col + 2) + '" aria-label="' + esc(desc) + '" title="' + esc(desc) + '">' +
+      '<b>' + esc(u.n) + (tag ? '<i>' + esc(String(tag).slice(0, 6)) + '</i>' : '') + '</b>' +
+      (vend ? '' : '<span>' + esc(u.ar ? m2c(u.ar) : (u.tl || '')) + '</span>' + (v && S.ui.espPreco !== false ? '<span class="pr">' + esc(kmil(v)) + '</span>' : '')) +
+      (mk ? '<em class="ep-ok" aria-hidden="true">' + ICO.ok + '</em>' : '') + '</button>';
+  }
+  function espGradeHtml(p, det, U, f, modo, sel, recentes){
+    const d = det.dados, G = d.grade || {}, COLS = Math.max(1, +G.colunas || 1), FLS = Array.isArray(G.andares) ? G.andares : [];
+    const rot = Array.isArray(G.rotulos_colunas) ? G.rotulos_colunas : null, comuns = Array.isArray(d.comuns) ? d.comuns : [];
+    const q = norm(S.ui.tabQ).trim(), multiCat = new Set(U.map(u => u.cat).filter(Boolean)).size > 1;
+    const out = [], gc = (ini, fim) => 'grid-column:' + (+ini + 2) + ' / ' + (+fim + 3);
+    let r = 1;
+    const barras = Array.isArray(G.barras_topo) ? G.barras_topo : [];
+    for(const b of barras) out.push('<div class="ep-barra ' + esc(b.estilo || '') + '" style="grid-row:' + r + ';' + gc(b.col_ini, b.col_fim) + '">' + esc(b.texto) + '</div>');
+    if(barras.length){ out.push('<span class="ep-and ep-vazio" style="grid-row:' + r + '"></span>'); r++; }
+    if(rot){
+      out.push('<span class="ep-and ep-cab" style="grid-row:' + r + '">Final</span>');
+      rot.forEach((l, i) => { if(i < COLS) out.push('<button type="button" class="ep-final" data-acao="ef-final" data-v="' + esc(l) + '" aria-pressed="' + (f.final === String(l)) + '" style="grid-row:' + r + ';grid-column:' + (i + 2) + '" aria-label="Ver só o final ' + esc(l) + '" title="Ver só o final ' + esc(l) + '">' + esc(l) + '</button>'); });
+      r++;
+    }
+    for(const t of (Array.isArray(G.topo) ? G.topo : [])){ out.push('<span class="ep-and" style="grid-row:' + r + '">' + esc(t.rotulo || '') + '</span><div class="ep-topo" style="grid-row:' + r + ';' + gc(t.col_ini, t.col_fim) + '">' + esc(t.texto) + '</div>'); r++; }
+    const linha = new Map(); FLS.slice().reverse().forEach((fl, i) => linha.set(String(fl), r + i));
+    const contA = new Map();
+    for(const [fl, rr] of linha) out.push('<span class="ep-and" style="grid-row:' + rr + '">' + esc(andarRot(fl)) + '</span>');
+    for(const u of U){
+      const rr = linha.get(String(u.andar)); if(!rr || u.col >= COLS) continue;
+      const ok = espBate(u, f, modo) && espStBate(u, f, recentes);
+      if(ok && u.st === 'disponivel') contA.set(String(u.andar), (contA.get(String(u.andar)) || 0) + 1);
+      out.push(espCelula(u, rr, ok, modo, sel, recentes, q, multiCat, det));
+    }
+    for(const cm of comuns){ const rr = linha.get(String(cm.andar)); if(rr && +cm.col < COLS) out.push('<div class="ep-comum" style="grid-row:' + rr + ';grid-column:' + (+cm.col + 2) + '" title="Área comum: ' + esc(cm.label) + '">' + esc(cm.label) + '</div>'); }
+    for(const [fl, rr] of linha){ const n = contA.get(fl); out.push('<span class="ep-bd' + (n ? '' : ' zero') + '" style="grid-row:' + rr + ';grid-column:' + (COLS + 2) + '"' + (n ? ' title="' + esc(plural(n, 'livre no filtro', 'livres no filtro') + ' no ' + andarRot(fl)) + '"' : '') + '>' + (n || '') + '</span>'); }
+    r += FLS.length;
+    if(G.barra_base){ out.push('<span class="ep-and ep-vazio" style="grid-row:' + r + '"></span><div class="ep-base" style="grid-row:' + r + ';' + gc(0, COLS - 1) + '">' + esc(G.barra_base) + '</div>'); }
+    return '<div class="ep-rola" tabindex="0" role="region" aria-label="Espelho do ' + esc(p.nome) + ': role para os lados para ver todos os finais"><div class="ep' + (S.ui.espDenso ? ' denso' : '') + '" style="--cols:' + COLS + '">' + out.join('') + '</div></div>';
+  }
+  function espLegendaHtml(det, U){
+    const sts = ST_ORDEM.filter(s => U.some(u => u.st === s));
+    return '<div class="ep-leg">' + sts.map(s => '<span><i class="s-' + s + '" aria-hidden="true"></i>' + esc(stLabel(det, s)) + '</span>').join('') +
+      '<span><i class="off" aria-hidden="true"></i>Fora do filtro</span><span><i class="mov" aria-hidden="true"></i>Mexeu hoje ou ontem</span><span><i class="marc" aria-hidden="true"></i>Marcada para mandar</span></div>';
+  }
+  function espelhoCorpoHtml(p, det){
+    const c = S.centralV.get(p.id) || null, U = espUnidades(det, c), f = espFiltro(p.id), modo = modoTabela(p, det);
+    const sel = S.ui.tabSel.get(p.id) || new Set(), recentes = recentesDe(det);
+    const temPreco = U.some(u => precoU(u.a, modo));
+    return espTilesHtml(U, f, modo, det, recentes) + espChipsHtml(U, f, modo, det, recentes, c) +
+      '<div class="ep-quadro"><div class="ep-cab-q"><p class="sub"><span class="l-longo">Toque numa unidade para ver planta, valores e fluxo.</span><span class="l-curto">Toque na unidade para ver planta e valores.</span></p><div class="ep-ferr">' +
+      (temPreco ? '<button type="button" class="pilula peq" data-acao="esp-preco" aria-pressed="' + (S.ui.espPreco !== false) + '">Preço na célula</button>' : '') +
+      '<button type="button" class="pilula peq" data-acao="esp-denso" aria-pressed="' + !!S.ui.espDenso + '">Prédio inteiro</button></div></div>' +
+      espGradeHtml(p, det, U, f, modo, sel, recentes) + espLegendaHtml(det, U) + '</div>' +
+      (sel.size ? barraTabelaHtml(p, sel) : '');
+  }
+  function barraTabelaHtml(p, sel){
+    return '<div class="barra-envio"><p><span><b class="num">' + sel.size + '</b> ' + (sel.size === 1 ? 'unidade' : 'unidades') + '</span><small>' + (sel.size === 1 ? 'marcada' : 'marcadas') + '</small></p><button type="button" class="btn" data-acao="tab-limpar" data-id="' + esc(p.id) + '">Limpar</button><button type="button" class="btn btn-pri" data-acao="enviar" data-id="' + esc(p.id) + '" data-sel="1">' + ICO.enviar + '<span>Mandar<span class="so-largo"> pro cliente</span></span></button></div>';
+  }
+  function espRolarAchada(){   // a unidade digitada na busca aparece no meio do mapa
+    const el = $('.ep-u.achou'); if(el) el.scrollIntoView({block: 'nearest', inline: 'center', behavior: menosMov() ? 'auto' : 'smooth'});
+  }
+
+  // ---------- planta, posição no andar e vista da unidade (ficha da central de produto) ----------
+  function finalNum(det, a){ const rot = det.dados.grade && det.dados.grade.rotulos_colunas; const v = rot && rot[+a[5]] != null ? parseInt(rot[+a[5]], 10) : NaN; return isNaN(v) ? null : v; }
+  const andarNum = a => /^\d+$/.test(String(a[4])) ? +a[4] : (a[4] === 'T' ? 0 : null);
+  function plantaDaUnidade(det, c, a){
+    const tl = tipologiaU(det, a) || '', tipo = a[1] ? String(a[1]) : null, fin = finalNum(det, a), an = andarNum(a);
+    if(c && Array.isArray(c.plantas) && c.plantas.length){
+      const noAndar = x => an == null || x.de == null || (an >= +x.de && an <= +(x.ate != null ? x.ate : x.de));
+      let pl = tipo ? c.plantas.find(x => Array.isArray(x.tipos) && x.tipos.map(String).includes(tipo)) : null;
+      if(!pl && fin != null) pl = c.plantas.find(x => Array.isArray(x.finais) && x.finais.map(Number).includes(fin) && noAndar(x)) || c.plantas.find(x => Array.isArray(x.finais) && x.finais.map(Number).includes(fin));
+      if(pl) return {src: imgCentral(c, pl.id), t: pl.t ? 'Planta ' + pl.t : 'Planta', sub: pl.andares || '', exata: true};
+      const ar = areaU(a), tk = tipoKDe(tl);
+      const cands = c.plantas.map(x => { const m = /(\d+(?:[.,]\d+)?)\s*m²/.exec(String(x.t || '')); return {x, m: m ? +m[1].replace(',', '.') : null}; }).filter(o => o.m && (!tk || tipoKDe(o.x.t) === tk));
+      if(ar > 0 && cands.length){ cands.sort((x, y) => Math.abs(x.m - ar) - Math.abs(y.m - ar)); if(Math.abs(cands[0].m - ar) <= 2) return {src: imgCentral(c, cands[0].x.id), t: 'Planta ' + cands[0].x.t, sub: cands[0].x.andares || '', exata: false}; }
+    }
+    const outras = plantasDoProjeto(det, c).filter(x => x.src), tn = norm(tl).replace(/\./g, '');
+    const hit = outras.find(x => tn && norm(x.t).replace(/\./g, '').includes(tn)) || (outras.length === 1 ? outras[0] : null);
+    return hit ? {src: hit.src, t: hit.t, sub: hit.sub || '', exata: false} : null;
+  }
+  function andarDaUnidade(det, c, a){   // planta do pavimento com a unidade marcada
+    if(!c || !Array.isArray(c.andar_img)) return null;
+    const fin = finalNum(det, a), an = andarNum(a); if(fin == null || an == null) return null;
+    const ai = c.andar_img.find(x => an >= +x.de && an <= +x.ate); if(!ai || !ai.cells || !(+ai.w > 0) || !(+ai.h > 0)) return null;
+    const r = ai.cells[String(fin)]; if(!Array.isArray(r) || !r.length) return null;
+    const rs = (Array.isArray(r[0]) ? r : [r]).filter(x => Array.isArray(x) && x.length >= 4);
+    if(!rs.length) return null;
+    return {src: imgCentral(c, ai.img), rs: rs.map(x => ({x: x[0] / ai.w * 100, y: x[1] / ai.h * 100, w: x[2] / ai.w * 100, h: x[3] / ai.h * 100})), leg: c.andar_legenda || ''};
+  }
+  function vistaDaUnidade(det, c, a){   // foto da vista daquela face, no andar mais próximo abaixo
+    if(!c || !Array.isArray(c.faces)) return null;
+    const fin = finalNum(det, a), col = +a[5], an = andarNum(a);
+    const face = c.faces.find(x => (Array.isArray(x.finais) && fin != null && x.finais.map(Number).includes(fin)) || (Array.isArray(x.cols) && x.cols.map(Number).includes(col)));
+    if(!face || !face.vistas || an == null) return null;
+    const ks = Object.keys(face.vistas).map(Number).filter(n => !isNaN(n)).sort((x, y) => x - y); if(!ks.length) return null;
+    let k = ks[0]; for(const n of ks) if(n <= an) k = n;
+    return {src: imgCentral(c, face.vistas[String(k)]), t: 'Vista ' + (face.nome ? 'para a ' + face.nome : 'desta face'), sub: 'Foto tirada no ' + k + 'º andar'};
+  }
+
+  // ---------- folha da unidade ----------
+  function unidadeCorpoHtml(p, det, c, a){
+    const n = String(a[0]), ex = exDe(a), pc = precosCampos(det).slice(0, 3), ar = areaU(a), tl = tipologiaU(det, a), m = recentesDe(det).get(n), st = stDe(det, a, m);
+    const vg = vagaDe(det, a), fin = finalNum(det, a), vi = (det.dados.vistas || []).find(v => +a[5] >= +v.col_ini && +a[5] <= +v.col_fim);
+    const base = precoU(a, chaveBase(det));
+    let h = '<div class="un-topo"><span class="un-st s-' + esc(a[6]) + '"><i aria-hidden="true"></i>' + esc(stLabel(det, a[6])) + '</span>' + (m ? '<span class="sub">' + esc(st.txt) + '</span>' : '') + '</div>';
+    const precos = pc.map(x => ({l: x.label, v: precoU(a, x.k)})).filter(x => x.v);
+    if(precos.length) h += '<div class="un-precos">' + precos.map(x => '<div><span>' + esc(x.l) + '</span><b class="num">' + esc(BRL(x.v)) + '</b></div>').join('') + (base && ar ? '<div><span>Por m²</span><b class="num">' + esc(BRL(base / ar)) + '</b></div>' : '') + '</div>';
+    else if(a[6] === 'disponivel') h += '<p class="aviso fino">' + esc(det.dados.sem_tabela || 'Unidade sem preço na tabela. Confirme o valor com a construtora.') + '</p>';
+    const fatos = [['Andar', andarTxt(a[4])], ['Tipologia', tl], ['Área', ar ? fmtM2(ar) : ''], ['Planta', a[1] ? String(a[1]).replace(/^TIPO /i, 'Tipo ') : ''], ['Enquadramento', a[3] ? catNomeDe(det, a[3]) : ''],
+      ['Vaga', vg != null ? vagaRot(vg) : ''], ['Final', fin != null ? String(fin).padStart(2, '0') : ''], ['Vista', vi ? vi.label : ''], ['Mobiliado', ex.mob ? 'Sim' : ''], ['PCD', ex.pcd ? 'Adaptável' : '']].filter(x => x[1]);
+    h += '<dl class="un-fatos">' + fatos.map(x => '<div><dt>' + esc(x[0]) + '</dt><dd>' + esc(x[1]) + '</dd></div>').join('') + '</dl>';
+    const pl = plantaDaUnidade(det, c, a), ad = andarDaUnidade(det, c, a), vs = vistaDaUnidade(det, c, a);
+    const luz = [];
+    let mid = '';
+    if(pl){ luz.push({src: pl.src, t: pl.t + (pl.sub ? ', ' + pl.sub : '')}); mid += '<figure class="planta un-planta"><button type="button" class="mos-item" data-acao="luz-un" data-i="' + (luz.length - 1) + '" aria-label="' + esc('Ampliar a ' + pl.t) + '">' + imgTag(pl.src, pl.t, '', {w: 900, semSet: true}) + '</button><figcaption>' + esc(pl.exata ? pl.t : pl.t + ' (da tipologia)') + (pl.sub ? '<small>' + esc(pl.sub) + '</small>' : '') + '</figcaption></figure>'; }
+    if(ad){ luz.push({src: ad.src, t: 'Posição no andar'}); mid += '<figure class="planta un-andar-f"><button type="button" class="un-andar" data-acao="luz-un" data-i="' + (luz.length - 1) + '" aria-label="Ampliar a planta do andar">' + imgTag(ad.src, 'Planta do ' + andarTxt(a[4]), '', {w: 1200, semSet: true}) + ad.rs.map(r => '<i style="left:' + r.x.toFixed(2) + '%;top:' + r.y.toFixed(2) + '%;width:' + r.w.toFixed(2) + '%;height:' + r.h.toFixed(2) + '%"></i>').join('') + '</button><figcaption>Posição no andar<small>Unidade ' + esc(n) + ' em destaque</small></figcaption></figure>'; }
+    if(vs){ luz.push({src: vs.src, t: vs.t + ', ' + vs.sub}); mid += '<figure class="planta un-vista"><button type="button" class="mos-item" data-acao="luz-un" data-i="' + (luz.length - 1) + '" aria-label="Ampliar a foto da vista">' + imgTag(vs.src, vs.t, '', {w: 900, semSet: true}) + '</button><figcaption>' + esc(vs.t) + '<small>' + esc(vs.sub) + '</small></figcaption></figure>'; }
+    S.unLuz = luz;
+    if(mid) h += '<div class="un-midia">' + mid + '</div>';
+    else if(c === undefined) h += '<div class="brilho" style="height:180px;border-radius:14px"></div>';
+    const fx = fluxoHtml(det, a);
+    if(fx) h += '<details class="un-fluxo"' + (ehToque() ? '' : ' open') + '><summary>Como o cliente paga</summary>' + fx + '</details>';
+    if(c && c.aviso_planta && pl) h += '<p class="nota">' + esc(c.aviso_planta) + '</p>';
+    return h;
+  }
+  function unidadePeHtml(p, a){
+    const n = String(a[0]), livre = a[6] === 'disponivel', mk = (S.ui.tabSel.get(p.id) || new Set()).has(n);
+    return (livre ? '<button type="button" class="btn" data-acao="un-marcar" data-id="' + esc(p.id) + '" data-n="' + esc(n) + '" aria-pressed="' + mk + '">' + (mk ? ICO.ok + 'Marcada' : 'Marcar') + '</button>' +
+      '<button type="button" class="btn btn-pri" data-acao="un-mandar" data-id="' + esc(p.id) + '" data-n="' + esc(n) + '">' + ICO.enviar + 'Mandar</button>' : '') +
+      '<a class="btn" href="#/comparar?p=' + encodeURIComponent(p.id) + '&n=' + encodeURIComponent(n) + '">' + ICO.comparar + 'Comparar</a>';
+  }
+  async function abrirUnidadeEsp(id, n){
+    const p = S.byId.get(id), ch = S.det.get(id), det = ch && ch.v; if(!p || !det) return;
+    const a = (det.dados.unidades || []).find(x => String(x[0]) === String(n)); if(!a) return;
+    const c0 = S.centralV.has(id) ? S.centralV.get(id) : undefined;
+    abrirFolha('un', 'Unidade ' + n + (a[4] != null && a[4] !== '' ? ', ' + andarTxt(a[4]) : ''), unidadeCorpoHtml(p, det, c0, a), unidadePeHtml(p, a), 'folha-un');
+    const dlg = $('#folha-un'); if(dlg) dlg.dataset.n = String(n);
+    if(c0 === undefined){
+      const c = await fichaCentral(id).catch(() => null);
+      const d2 = $('#folha-un'); if(d2 && d2.isConnected && d2.dataset.n === String(n)) corpoFolha(unidadeCorpoHtml(p, det, c, a), null, d2);
+    }
+  }
+  function marcarUnidade(id, n){
+    const s = S.ui.tabSel.get(id) || new Set();
+    if(s.has(n)) s.delete(n); else s.add(n);
+    if(s.size) S.ui.tabSel.set(id, s); else S.ui.tabSel.delete(id);
+    const p = S.byId.get(id), ch = S.det.get(id), det = ch && ch.v, dlg = $('#folha-un');
+    if(p && det && dlg){ const a = (det.dados.unidades || []).find(x => String(x[0]) === String(n)); if(a){ const pe = dlg.querySelector('.folha-pe'); if(pe) pe.innerHTML = unidadePeHtml(p, a); } }
+    atualizarTabela();
+  }
+
+  // ================= COMPARAR (mesmo motor do app dos Espelhos: opções parecidas ou escolhidas, lado a lado) =================
+  const CP_MOT = [['parecido', 'Parecidos'], ['preco', 'Mais barato'], ['entrega', 'Entrega mais próxima'], ['regiao', 'Outra região'], ['tamanho', 'Planta maior']];
+  const CP_INTRO = {parecido: 'opções parecidas com o %s', preco: 'opções mais em conta que o %s', entrega: 'opções com entrega mais próxima que a do %s', regiao: 'opções em outra região, no lugar do %s', tamanho: 'opções com planta maior que a do %s'};
+  const CP_PESOS = {   // a: metragem, p: valor, e: entrega, d: distância, f: fase
+    parecido: {a: .25, p: .30, e: .15, d: .15, f: .15}, preco: {a: .25, p: .40, e: .10, d: .15, f: .10}, entrega: {a: .20, p: .20, e: .40, d: .10, f: .10},
+    regiao: {a: .25, p: .30, e: .15, d: .10, f: .20}, tamanho: {a: .35, p: .25, e: .15, d: .15, f: .10}};
+  const TIPO_ORD = ['S', '1', '2', '3'];
+  const CP_RAIOS = [2, 3, 5, 8, 12];
+  const CP_PRAZO_MIN = 6, CP_RAZAO = 1.43;
+  const CP0 = () => ({tipo: 'parecidos', pid: null, n: null, motivo: 'parecido', modo: 'pv', raio: 3, inc: true, fora: new Set(), esc: [{pid: null, n: null}, {pid: null, n: null}], qs: null});
+  const clamp01 = x => Math.max(0, Math.min(1, x));
+  const mesesTxt = n => n + (n === 1 ? ' mês' : ' meses');
+  function mesesAte(ym){ const m = /^(\d{4})-(\d{2})/.exec(ym || ''); if(!m) return null; const h = new Date(); return Math.max(0, (+m[1] - h.getFullYear()) * 12 + (+m[2] - 1 - h.getMonth())); }
+  const entregaMeses = p => p.fase === 'pronto' ? 0 : (p.entrega ? mesesAte(p.entrega) : null);
+  function entregaVal(p){ if(p.fase === 'pronto') return 'Pronto para morar'; const m = entregaMeses(p); if(m == null) return 'A confirmar'; return mesAnoCurto(p.entrega) + (m === 0 ? ' (este mês)' : ' (em ' + mesesTxt(m) + ')'); }
+  const faseCp = p => p.fase === 'breve' ? 'lanc' : (p.fase || null);
+  const BRLmil = v => v >= 1e6 ? 'R$ ' + (Math.round(v / 1e4) / 100).toLocaleString('pt-BR') + ' mi' : v >= 1e3 ? 'R$ ' + Math.round(v / 1e3).toLocaleString('pt-BR') + ' mil' : BRL(v);
+  const pctAbs = x => Math.abs(x).toLocaleString('pt-BR', {maximumFractionDigits: 0}) + '%';
+  const pc1 = x => x.toLocaleString('pt-BR', {maximumFractionDigits: 1}) + '%';
+  function cpPreco(u, modo){   // o valor pedido; se o projeto não tiver, o que ele tiver (com o rótulo certo)
+    const tem = {pv: u.pv > 0, pp: u.p > 0};
+    const k = tem[modo] ? modo : (tem.pv && tem.pp ? (u.pv <= u.p ? 'pv' : 'pp') : tem.pv ? 'pv' : tem.pp ? 'pp' : null);
+    return k ? {v: k === 'pv' ? u.pv : u.p, k, lbl: k === 'pv' ? 'à vista' : 'parcelado'} : null;
+  }
+  function cpMetr(p, u, modo){ const pr = cpPreco(u, modo); return {p, u, n: u.n, ar: u.a, tk: u.k, pr, v: pr ? pr.v : null, pm2: pr && u.a > 0 ? pr.v / u.a : null, em: entregaMeses(p), fase: faseCp(p)}; }
+  const cpLivres = pid => ((S.U && S.U.get(pid)) || []).filter(u => u.k !== 'L');
+  function cpTipica(pid, modo){   // a do meio (pelo valor) da tipologia com mais unidades livres
+    const us = cpLivres(pid).filter(u => cpPreco(u, modo)); if(!us.length) return null;
+    const g = new Map(); us.forEach(u => { const k = u.k || '?'; if(!g.has(k)) g.set(k, []); g.get(k).push(u); });
+    const maior = [...g.values()].sort((x, y) => y.length - x.length)[0];
+    maior.sort((x, y) => cpPreco(x, modo).v - cpPreco(y, modo).v);
+    return maior[Math.floor((maior.length - 1) / 2)];
+  }
+  function cpUnidade(pid, n, modo){   // a unidade pedida (livre, do índice; senão da tabela do projeto, se já aberta) ou a típica
+    if(n != null && n !== ''){
+      const u = cpLivres(pid).find(x => x.n === String(n)); if(u && cpPreco(u, modo)) return u;
+      const ch = S.det.get(pid), det = ch && ch.v;
+      const a = det && (det.dados.unidades || []).find(x => String(x[0]) === String(n));
+      if(a){ const tl = tipologiaU(det, a) || ''; const pu = {n: String(a[0]), k: tipoKDe(tl), a: areaU(a), at: a[4] == null ? null : String(a[4]), p: precoU(a, 'pp'), pv: precoU(a, 'pv'), c: null, vg: null, f: 0, st: a[6]}; if(cpPreco(pu, modo)) return pu; }
+    }
+    return cpTipica(pid, modo);
+  }
+  function cpAlternativas(ref, motivo, raio, modo){
+    const P = ref.p, bo = norm(P.bairro || ''), out = [], W = CP_PESOS[motivo] || CP_PESOS.parecido;
+    const filtraTipo = TIPO_ORD.includes(ref.tk), ixT = TIPO_ORD.indexOf(ref.tk);
+    for(const Q of S.P){
+      if(Q.id === P.id || !Q.livres) continue;
+      const mesmoBairro = !!bo && norm(Q.bairro || '') === bo;
+      let d = P.lat != null && P.lng != null && Q.lat != null && Q.lng != null ? distKm(P, Q) : null;
+      if(d == null){ if(!mesmoBairro) continue; d = 0; } else if(d > raio) continue;
+      if(motivo === 'regiao' && mesmoBairro) continue;
+      let melhor = null, nTipo = 0, nDisp = 0;
+      for(const u of cpLivres(Q.id)){
+        nDisp++;
+        const m = cpMetr(Q, u, modo);
+        if(filtraTipo && m.tk === ref.tk) nTipo++;
+        if(!m.v || !(m.ar > 0)) continue;
+        if(filtraTipo && m.tk !== ref.tk && !(motivo === 'tamanho' && TIPO_ORD.indexOf(m.tk) === ixT + 1)) continue;
+        const rA = m.ar / ref.ar, rP = m.v / ref.v;
+        if(motivo === 'tamanho'){ if(rA < 1.08 || rA > 1.7) continue; } else if(rA < .65 || rA > 1.35) continue;
+        if(rP < .55 || rP > 1.4) continue;
+        if(motivo === 'preco' && rP > .98) continue;
+        if(motivo === 'entrega'){ if(m.em == null) continue; if(ref.em != null ? (ref.em === 0 ? m.em !== 0 : m.em >= ref.em) : m.em > 12) continue; }
+        const sA = motivo === 'tamanho' ? clamp01(1 - Math.abs(rA - 1.2) / .25) : clamp01(1 - Math.abs(rA - 1) / .30);
+        const sP = motivo === 'preco' ? clamp01((1 - rP) / .2) : clamp01(1 - Math.abs(rP - 1) / .25);
+        const sE = ref.em == null || m.em == null ? .5 : motivo === 'entrega' ? clamp01((ref.em - m.em) / 12 + (ref.em === 0 ? 1 : 0)) : clamp01(1 - Math.abs(m.em - ref.em) / 18);
+        const sD = clamp01(1 - d / Math.max(raio, 1.5));
+        const sF = !ref.fase || !m.fase ? .5 : ref.fase === m.fase ? 1 : (ref.fase === 'pronto' || m.fase === 'pronto' ? .3 : .6);
+        const s = W.a * sA + W.p * sP + W.e * sE + W.d * sD + W.f * sF, dv = Math.abs(rP - 1);
+        if(!melhor || s > melhor.s + 1e-9 || (Math.abs(s - melhor.s) <= 1e-9 && dv < melhor.dv)) melhor = {m, s, dv};
+      }
+      if(melhor && melhor.s >= .35) out.push({m: melhor.m, s: melhor.s, d, nTipo, nDisp, q: Q});
+    }
+    out.sort((x, y) => y.s - x.s || x.d - y.d);
+    return out;
+  }
+  function cpBuscar(cp){
+    const P = S.byId.get(cp.pid); if(!P) return null;
+    const u = cpUnidade(P.id, cp.n, cp.modo); if(!u) return {ref: null, alts: []};
+    const ref = cpMetr(P, u, cp.modo);
+    const base = cp.motivo === 'regiao' ? Math.max(cp.raio, 5) : cp.raio, seq = [base].concat([3, 5, 8, 12].filter(r => r > base));
+    let alts = [], usado = base;
+    for(const r of seq){ alts = cpAlternativas(ref, cp.motivo, r, cp.modo); usado = r; if(alts.length >= 3) break; }
+    return {ref, alts: alts.slice(0, 4), raio: usado, base, ampliou: usado > base};
+  }
+  function cpEscolhidos(cp){
+    const out = [];
+    for(const e of cp.esc){ const P = e.pid && S.byId.get(e.pid); if(!P) continue; const u = cpUnidade(P.id, e.n, cp.modo); if(u) out.push(cpMetr(P, u, cp.modo)); }
+    return out;
+  }
+
+  // ---------- diferenças para o original ----------
+  function cpDeltas(m, ref){
+    const o = {};
+    if(m.v != null && ref.v){ const x = (m.v - ref.v) / ref.v * 100; o.v = Math.abs(x) < .5 ? {t: 'mesmo valor', c: ''} : {t: BRLmil(Math.abs(m.v - ref.v)) + (x < 0 ? ' a menos' : ' a mais') + ' (' + pctAbs(x) + ')', c: x < 0 ? 'bom' : 'ruim'}; }
+    if(m.ar > 0 && ref.ar > 0){ const x = m.ar - ref.ar; o.a = Math.abs(x) < .3 ? {t: 'mesma metragem', c: ''} : {t: fmtM2(Math.round(Math.abs(x) * 10) / 10) + ' a ' + (x > 0 ? 'mais' : 'menos'), c: x > 0 ? 'bom' : 'ruim'}; }
+    if(m.pm2 && ref.pm2){ const x = (m.pm2 - ref.pm2) / ref.pm2 * 100; o.m = Math.abs(x) < 1 ? {t: 'igual', c: ''} : {t: pctAbs(x) + (x < 0 ? ' menos' : ' mais') + ' por m²', c: x < 0 ? 'bom' : 'ruim'}; }
+    if(m.em != null && ref.em != null){ const x = m.em - ref.em; o.e = x === 0 ? {t: ref.em === 0 ? 'também pronto' : 'mesmo prazo', c: ''} : {t: mesesTxt(Math.abs(x)) + (x < 0 ? ' antes' : ' depois'), c: x < 0 ? 'bom' : 'ruim'}; }
+    return o;
+  }
+  function cpPorque(m, ref, d){
+    const o = cpDeltas(m, ref), t = [];
+    if(o.v && o.v.c) t.push(o.v.t.replace(/ \(.*\)$/, ''));
+    if(o.a && o.a.c) t.push(o.a.t);
+    if(o.e && o.e.c) t.push('entrega ' + o.e.t);
+    if(!t.length) t.push('valor e metragem praticamente iguais');
+    return maiusc1(t.slice(0, 3).join(', ')) + (d != null ? ', a ' + kmTxt(d) + ' do original' : '');
+  }
+
+  // ---------- fluxo resumido (só no parcelado) e prazo ----------
+  const cpPer = t => t === 'semestral' ? 6 : t === 'anual' ? 12 : (t === 'mensal' || t === 'parc') ? 1 : 0;
+  const ymNum = d => { const m = /^(\d{4})-(\d{2})/.exec(d || ''); return m ? +m[1] * 12 + (+m[2] - 1) : null; };
+  function prazoDatas(T){   // meses de hoje até a última parcela antes do financiamento
+    if(!T || !Array.isArray(T.cols)) return null;
+    const h = new Date(), hoje = h.getFullYear() * 12 + h.getMonth();
+    let fim = null, n = 0;
+    for(const c of T.cols){ if(c.t === 'fin') continue; const per = cpPer(c.t), d = ymNum(c.d), k = c.n || 1; if(per) n += k; if(d != null){ const e = d + (k - 1) * per; if(fim == null || e > fim) fim = e; } }
+    return fim != null ? Math.max(0, fim - hoje) : n;
+  }
+  function cpFluxo(det, a){
+    const fx = fluxoDe(det, a); if(!fx) return null;
+    const prazo = fx.T && fx.T.prazo != null ? +fx.T.prazo : prazoDatas(fx.T);
+    if(!fx.linhas || !fx.linhas.length || !(fx.total > 0)) return {txt: null, prazo, aprox: true};
+    const L = fx.linhas, tot = fx.total, soma = ls => ls.reduce((s, l) => s + l.v * l.n, 0);
+    const ato = L.filter(l => l.t === 'ato' || l.t === 'sinal'), fin = L.filter(l => l.fin), resto = L.filter(l => !l.fin && l.t !== 'ato' && l.t !== 'sinal');
+    const atoV = soma(ato), atoN = ato.reduce((s, l) => s + l.n, 0), parcN = resto.reduce((s, l) => s + l.n, 0), finV = soma(fin), t = [];
+    if(atoV) t.push(pc1(atoV / tot * 100) + ' de entrada' + (atoN > 1 ? ' em ' + atoN + 'x' : ''));
+    if(parcN) t.push(parcN + (parcN === 1 ? ' parcela' : ' parcelas'));
+    t.push(finV ? pc1(finV / tot * 100) + ' no financiamento' : 'sem financiamento');
+    return {txt: t.join(', '), prazo};
+  }
+  const cpComparavel = (x, y) => { if(x == null || y == null) return true; const a = Math.max(x, CP_PRAZO_MIN), b = Math.max(y, CP_PRAZO_MIN); return Math.max(a, b) / Math.min(a, b) <= CP_RAZAO; };
+
+  // ---------- tela ----------
+  function cpSlotProj(slot, pid, rot){
+    const P = pid && S.byId.get(pid);
+    return '<button type="button" class="cp-proj" data-acao="cp-escolher" data-slot="' + esc(slot) + '">' + (P ? miniProj(P, 'peq') + '<span><b>' + esc(P.nome) + '</b><small>' + esc([quemDe(P), P.bairro].filter(Boolean).join(', ')) + '</small></span>' : '<span class="cp-proj-vazio">' + ICO.lupa + esc(rot) + '</span>') + ICO.baixo + '</button>';
+  }
+  function cpOpcoesUn(pid, n, modo){
+    const tip = cpTipica(pid, modo), pr = tip && cpPreco(tip, modo);
+    const us = cpLivres(pid).filter(u => cpPreco(u, modo)).sort((x, y) => cpPreco(x, modo).v - cpPreco(y, modo).v).slice(0, 160);
+    const fora = n != null && n !== '' && !us.some(u => u.n === String(n));
+    return '<option value=""' + (n == null || n === '' ? ' selected' : '') + '>Unidade típica' + (tip ? ': ' + [tipoNome(tip.k), tip.a ? fmtM2(tip.a) : '', pr ? BRLc(pr.v) : ''].filter(Boolean).join(', ') : '') + '</option>' +
+      (fora ? '<option value="' + esc(n) + '" selected>Unidade ' + esc(n) + '</option>' : '') +
+      us.map(u => '<option value="' + esc(u.n) + '"' + (String(n) === u.n ? ' selected' : '') + '>' + esc([u.n, u.at != null ? andarCurto(u.at) : '', u.a ? fmtM2(u.a) : '', tipoNome(u.k), BRL(cpPreco(u, modo).v)].filter(Boolean).join(', ')) + '</option>').join('');
+  }
+  function cpLinha(rot, val, delta, extra){
+    return '<div><dt>' + esc(rot) + '</dt><dd>' + esc(val) + (delta && delta.t ? '<small class="cp-d' + (delta.c ? ' ' + delta.c : '') + '">' + esc(delta.t) + '</small>' : extra ? '<small class="cp-d">' + esc(extra) + '</small>' : '') + '</dd></div>';
+  }
+  function cpCardHtml(m, ref, rotulo, x, cp, k){
+    const P = m.p, o = ref && m !== ref ? cpDeltas(m, ref) : {}, pv = cpPreco(m.u, 'pv'), pp = cpPreco(m.u, 'pp');
+    const temPv = pv && pv.k === 'pv', temPp = pp && pp.k === 'pp';
+    const kUsado = m.pr ? m.pr.k : cp.modo, kRef = ref && ref.pr ? ref.pr.k : cp.modo;   // sem a tabela pedida, a diferença vai na linha do valor que entrou na conta
+    const dV = o.v ? (kUsado !== kRef ? {t: o.v.t + ', pelo ' + (kUsado === 'pp' ? 'parcelado' : 'à vista'), c: o.v.c} : o.v) : null;
+    const fora = cp.fora.has(P.id), orig = !x && cp.tipo === 'parecidos';
+    const incluido = orig ? cp.inc : !fora;
+    const dl = cpLinha('Unidade', m.n + (m.u.at != null ? ', ' + andarTxt(m.u.at) : '')) +
+      cpLinha('Metragem', [m.ar ? fmtM2(m.ar) : '', tipoNome(m.tk)].filter(Boolean).join(', ') || 'sem metragem', o.a) +
+      cpLinha('À vista', temPv ? BRL(pv.v) : 'sem tabela à vista', kUsado === 'pv' ? dV : null) +
+      cpLinha('Parcelado', temPp ? BRL(pp.v) : 'sem tabela parcelada', kUsado === 'pp' ? dV : null, temPv && temPp && pp.v > pv.v ? 'à vista fica ' + pctAbs((1 - pv.v / pp.v) * 100) + ' abaixo' : '') +
+      cpLinha('Por m²', m.pm2 ? BRL(m.pm2) : 'sem valor', o.m, m.pm2 && m.pr ? 'no ' + m.pr.lbl : '') +
+      cpLinha('Entrega', entregaVal(P), o.e) +
+      cpLinha('Construtora', quemDe(P) || 'não informada') +
+      (x ? cpLinha('Disponíveis', (x.nTipo && tipoNome(m.tk) ? x.nTipo + ' de ' + tipoNome(m.tk).toLowerCase() + ', ' : '') + plural(x.nDisp, 'livre no projeto', 'livres no projeto')) : cpLinha('Disponíveis', plural(P.livres, 'livre no projeto', 'livres no projeto'))) +
+      (cp.modo === 'pp' ? '<div class="cp-fx" data-cpk="' + k + '"><dt>Fluxo</dt><dd><span class="brilho" style="display:block;height:18px;border-radius:6px"></span></dd></div>' : '');
+    return '<article class="cp-card' + (orig || (cp.tipo === 'escolha' && k === 0) ? ' orig' : '') + (incluido ? '' : ' fora') + '">' +
+      '<div class="cp-foto">' + capaProj(P, {w: 560, sizes: '(min-width:1024px) 22vw, 80vw'}) + '<span class="cp-selo">' + esc(rotulo) + '</span></div>' +
+      '<div class="cp-corpo"><h3 class="t-3"><a href="#/p/' + esc(P.id) + '">' + esc(P.nome) + '</a></h3><p class="sub">' + esc([P.bairro, x && x.d != null ? 'a ' + kmTxt(x.d) + ' do original' : ''].filter(Boolean).join(', ')) + '</p>' +
+      '<dl class="cp-fatos">' + dl + '</dl>' +
+      '<div class="cp-pl" data-cpk="' + k + '"><span class="brilho"></span></div>' +
+      (x && ref ? '<p class="cp-porque">' + esc(cpPorque(m, ref, x.d)) + '</p>' : '') +
+      '<div class="cp-acoes"><button type="button" class="pilula peq" data-acao="cp-incluir" data-id="' + esc(P.id) + '" data-orig="' + (orig ? 1 : 0) + '" aria-pressed="' + incluido + '">' + (incluido ? ICO.ok : '') + 'No envio</button>' +
+      '<a class="pilula peq" href="#/tabelas/' + esc(P.id) + '" data-acao="cp-espelho" data-id="' + esc(P.id) + '" data-n="' + esc(m.n) + '">' + ICO.predio + 'Espelho</a><a class="pilula peq" href="#/p/' + esc(P.id) + '">Ficha</a></div></div></article>';
+  }
+  function telaComparar(qs){
+    if(!S.cp) S.cp = CP0();
+    const cp = S.cp;
+    if(qs && qs !== cp.qs){
+      const q = new URLSearchParams(qs), pid = q.get('p');
+      if(pid && S.byId.has(pid)){ cp.tipo = 'parecidos'; cp.pid = pid; cp.n = q.get('n') || null; cp.fora = new Set(); cp.inc = true; }
+      cp.qs = qs;
+    }
+    const cab = '<header class="pg-cab"><div><h1 class="t-1">Comparar</h1><p class="texto-2 ler">' + (cp.tipo === 'parecidos' ? 'O cliente não gostou de um projeto? Escolha o projeto e o motivo: o app separa até 4 opções parecidas por perto e mostra lado a lado, com valores, metragem, entrega e planta.' : 'Escolha de 2 a 5 projetos e a unidade de cada um para ver lado a lado.') + '</p></div>' +
+      '<div class="seg seg-cp" role="group" aria-label="Como comparar"><button type="button" data-acao="cp-tipo" data-v="parecidos" aria-pressed="' + (cp.tipo === 'parecidos') + '">Opções parecidas</button><button type="button" data-acao="cp-tipo" data-v="escolha" aria-pressed="' + (cp.tipo === 'escolha') + '">Escolher</button></div></header>';
+    if(!S.U){
+      pos.push(async () => { await carregarUnidades(); if(/^#\/comparar/.test(location.hash)) render(); });
+      return cab + '<div class="esqueleto" aria-busy="true"><div class="brilho" style="height:120px"></div><div class="brilho" style="height:320px"></div><p class="sub">' + (S.Uerro ? 'Não consegui abrir as unidades agora.' : 'Carregando as unidades livres…') + '</p></div>';
+    }
+    if(cp.n && cp.pid && !S.det.get(cp.pid) && !cpLivres(cp.pid).some(u => u.n === String(cp.n))) pos.push(async () => { try{ await detalhe(cp.pid); if(/^#\/comparar/.test(location.hash)) render(); }catch(e){} });
+    const modoSeg = '<div class="seg" role="group" aria-label="Valor a comparar">' + [['pv', 'À vista'], ['pp', 'Parcelado']].map(x => '<button type="button" data-acao="cp-modo" data-v="' + x[0] + '" aria-pressed="' + (cp.modo === x[0]) + '">' + x[1] + '</button>').join('') + '</div>';
+    let ctl = '', itens = [], ref = null, aviso = '';
+    if(cp.tipo === 'parecidos'){
+      ctl = '<div class="cp-ctl"><div class="cp-campo cp-c-proj"><span class="rotulo">Projeto que o cliente viu</span>' + cpSlotProj('ref', cp.pid, 'Escolher o projeto') + '</div>' +
+        (cp.pid ? '<label class="cp-campo cp-c-un"><span class="rotulo">Unidade de referência</span><select class="sel" data-input="cp-un">' + cpOpcoesUn(cp.pid, cp.n, cp.modo) + '</select></label>' : '') +
+        '<div class="cp-campo cp-c-mot"><span class="rotulo">Por que ele não gostou?</span><div class="pilulas" role="group" aria-label="Motivo">' + CP_MOT.map(x => '<button type="button" class="pilula peq" data-acao="cp-motivo" data-v="' + x[0] + '" aria-pressed="' + (cp.motivo === x[0]) + '">' + x[1] + '</button>').join('') + '</div></div>' +
+        '<div class="cp-campo"><span class="rotulo">Valor</span>' + modoSeg + '</div>' +
+        '<label class="cp-campo"><span class="rotulo">Distância</span><select class="sel" data-input="cp-raio">' + CP_RAIOS.map(r => '<option value="' + r + '"' + (cp.raio === r ? ' selected' : '') + '>até ' + r + ' km</option>').join('') + '</select></label></div>';
+      if(cp.pid){
+        const r = cpBuscar(cp);
+        if(!r || !r.ref) aviso = '<p class="aviso fino">Esse projeto não tem unidade livre com preço para servir de referência. Escolha outro projeto ou uma unidade.</p>';
+        else{
+          ref = r.ref;
+          aviso = '<p class="cp-ref">Referência: <b>' + esc(ref.p.nome) + '</b>, unidade ' + esc(ref.n) + ', ' + esc([ref.ar ? fmtM2(ref.ar) : '', tipoNome(ref.tk), ref.pr ? BRL(ref.v) + ' ' + ref.pr.lbl : ''].filter(Boolean).join(', ')) + '.</p>' +
+            (r.ampliou ? '<p class="aviso fino">Não achei opções suficientes até ' + r.base + ' km do projeto: ampliei a busca para ' + r.raio + ' km.</p>' : '') +
+            (!r.alts.length ? '<p class="aviso fino">Nenhum projeto parecido até ' + r.raio + ' km. Tente outro motivo, o outro valor ou escolha os projetos.</p>' : '');
+          itens = [{m: ref, x: null, rot: 'O cliente viu'}].concat(r.alts.map((x, i) => ({m: x.m, x, rot: 'Opção ' + (i + 1)})));
+        }
+      }
+    }else{
+      ctl = '<div class="cp-ctl cp-esc">' + cp.esc.map((e, i) => '<div class="cp-slot"><div class="cp-slot-cab"><span class="rotulo">' + (i === 0 ? 'Base da comparação' : 'Projeto ' + (i + 1)) + '</span>' +
+        (cp.esc.length > 2 ? '<button type="button" class="link-mais" data-acao="cp-tirar" data-i="' + i + '" aria-label="Tirar o projeto ' + (i + 1) + '">Tirar</button>' : '') + '</div>' + cpSlotProj(String(i), e.pid, 'Escolher o projeto') +
+        (e.pid ? '<select class="sel" data-input="cp-esc-un" data-i="' + i + '" aria-label="Unidade do projeto ' + (i + 1) + '">' + cpOpcoesUn(e.pid, e.n, cp.modo) + '</select>' : '') + '</div>').join('') +
+        (cp.esc.length < 5 ? '<button type="button" class="btn btn-peq cp-mais" data-acao="cp-add">Mais um projeto</button>' : '') +
+        '<div class="cp-campo"><span class="rotulo">Valor</span>' + modoSeg + '</div></div>';
+      const ms = cpEscolhidos(cp);
+      if(ms.length){ ref = ms[0]; itens = ms.map((m, i) => ({m, x: i ? {d: ref.p.lat != null && m.p.lat != null ? distKm(ref.p, m.p) : null, nTipo: 0, nDisp: m.p.livres} : null, rot: i ? 'Projeto ' + (i + 1) : 'Base'})); }
+      if(ms.length < 2) aviso = '<p class="aviso fino">Escolha pelo menos dois projetos.</p>';
+    }
+    S.cpItens = itens;
+    if(itens.length) pos.push(() => cpCarregarExtras(itens, ref));
+    const cards = itens.length ? '<div class="cp-cards" style="--n:' + itens.length + '">' + itens.map((it, k) => cpCardHtml(it.m, ref, it.rot, it.x, cp, k)).join('') + '</div>' : '';
+    const noEnvio = cpItensEnvio(cp);
+    const barra = itens.length > 1 && noEnvio.length ? '<div class="barra-envio"><p><span><b class="num">' + noEnvio.length + '</b> ' + (noEnvio.length === 1 ? 'projeto' : 'projetos') + '</span><small>no envio, lado a lado</small></p><button type="button" class="btn btn-pri" data-acao="cp-mandar">' + ICO.enviar + '<span>Mandar<span class="so-largo"> pro cliente</span></span></button></div>' : '';
+    return cab + ctl + aviso + cards + barra;
+  }
+  function cpItensEnvio(cp){
+    const its = S.cpItens || [];
+    return its.filter((it, k) => { const orig = !it.x && cp.tipo === 'parecidos'; return orig ? cp.inc : !cp.fora.has(it.m.p.id); }).map(it => ({p: it.m.p.id, n: it.m.n, nome: it.m.p.nome}));
+  }
+  async function cpCarregarExtras(itens, ref){   // planta da unidade e fluxo (no parcelado), projeto por projeto
+    const cp = S.cp, alvo = '#/comparar' + (cp.qs ? '?' + cp.qs : '');
+    let prazoRef;
+    for(let k = 0; k < itens.length; k++){
+      const it = itens[k], P = it.m.p;
+      let det = null, c = null;
+      try{ det = await detalhe(P.id); }catch(e){ if(codigoInvalido(e)) return sair('Esse código não vale mais.'); }
+      c = await fichaCentral(P.id).catch(() => null);
+      if(!/^#\/comparar/.test(location.hash) || S.cpItens !== itens) return;
+      const a = det && (det.dados.unidades || []).find(x => String(x[0]) === String(it.m.n));
+      const box = $('.cp-pl[data-cpk="' + k + '"]');
+      if(box){
+        const pl = det && a ? plantaDaUnidade(det, c, a) : null;
+        if(pl){ it.pl = pl; box.innerHTML = '<figure class="planta"><button type="button" class="mos-item" data-acao="luz-cp" data-k="' + k + '" aria-label="' + esc('Ampliar a ' + pl.t) + '">' + imgTag(pl.src, pl.t, '', {w: 640, semSet: true}) + '</button><figcaption>' + esc(pl.t) + (pl.exata ? '' : '<small>Planta da tipologia</small>') + '</figcaption></figure>'; }
+        else box.innerHTML = '<p class="nota">Planta não cadastrada.</p>';
+      }
+      const fb = $('.cp-fx[data-cpk="' + k + '"] dd');
+      if(fb){
+        const fx = det && a ? cpFluxo(det, a) : null;
+        if(k === 0) prazoRef = fx ? fx.prazo : null;
+        const pz = fx && fx.prazo != null && fx.prazo >= 1 ? 'parcelas até ' + mesesTxt(fx.prazo) : '';
+        const dif = k > 0 && fx && !cpComparavel(prazoRef, fx.prazo);
+        fb.innerHTML = fx && fx.txt ? esc(fx.txt) + (pz ? '<small class="cp-d">' + esc(pz) + '</small>' : '') + (dif ? '<small class="cp-d ruim">prazo de pagamento bem diferente do original</small>' : '') : 'Consulte a tabela' + (pz ? '<small class="cp-d">' + esc(pz) + '</small>' : '');
+      }
+      if(location.hash !== alvo && !/^#\/comparar$/.test(location.hash)) return;
+    }
+  }
+  function abrirEscolhaProjeto(slot){
+    S.cpSlot = slot;
+    abrirFolha('cp-proj', 'Escolher o projeto', '<label class="busca mini"><span class="sr">Buscar projeto</span>' + ICO.lupa + '<input type="search" id="cp-pq" autocomplete="off" placeholder="Nome, construtora ou bairro" data-input="cp-pq"></label><ul class="lista-proj cp-lista" id="cp-lista">' + cpListaProjHtml('') + '</ul>', '', 'folha-alta');
+    setTimeout(() => { const i = $('#cp-pq'); if(i && !ehToque()) i.focus(); }, 80);
+  }
+  function cpListaProjHtml(q){
+    const termos = norm(q).split(/\s+/).filter(Boolean);
+    const ps = S.P.filter(p => p.livres > 0 && (!termos.length || termos.every(t => norm([p.nome, p.curto, p.bairro, quemDe(p)].join(' ')).includes(t))))
+      .sort((a, b) => (b.v7 - a.v7) || String(a.nome).localeCompare(String(b.nome), 'pt-BR')).slice(0, 80);
+    return ps.map(p => '<li><button type="button" class="cp-op" data-acao="cp-pick" data-id="' + esc(p.id) + '">' + miniProj(p) + '<span class="meio"><b>' + esc(p.nome) + '</b><span>' + esc([quemDe(p), p.bairro].filter(Boolean).join(', ')) + '</span><span>' + esc(plural(p.livres, 'livre', 'livres')) + '</span></span></button></li>').join('') || '<li class="lista-mais">Nenhum projeto com unidade livre com esse nome.</li>';
+  }
+  function abrirEnvioCmp(){
+    const cp = S.cp, its = cpItensEnvio(cp); if(its.length < 1) return;
+    const refIt = (S.cpItens || [])[0];
+    const motivo = cp.tipo === 'parecidos' ? cp.motivo : null;
+    const u = {}; its.forEach(x => { if(!(x.p in u)) u[x.p] = x.n; });
+    const o = cp.tipo === 'parecidos' && cp.inc && refIt ? refIt.m.p.id : (cp.tipo === 'escolha' && its[0] ? its[0].p : null);
+    const texto = ('Comparativo: ' + (motivo && refIt ? (CP_INTRO[motivo] || CP_INTRO.parecido).replace('%s', refIt.m.p.nome) : its.map(x => x.nome).join(' x '))).slice(0, 200);
+    S.envio = {multi: true, modo: cp.modo, itens: its.map(x => ({p: x.p, n: x.n})), texto, cmp: {o, u, m: motivo || 'escolha'}};
+    const lista = its.map(x => { const P = S.byId.get(x.p), it = (S.cpItens || []).find(i => i.m.p.id === x.p && i.m.n === x.n), pr = it && it.m.pr; return '<p class="env-u">' + (P ? miniProj(P, 'peq') : '') + '<span><b>' + esc(x.nome) + '</b><small>' + esc('unidade ' + x.n + (it && it.m.ar ? ', ' + fmtM2(it.m.ar) : '')) + '</small></span><span class="num ouro">' + (pr ? esc(BRLc(pr.v)) : '') + '</span></p>'; }).join('');
+    abrirFolha('envio', 'Mandar pro cliente',
+      '<p class="texto-2">O cliente recebe uma página com os ' + its.length + ' projetos lado a lado (valores, metragem e entrega) e as fichas de cada um.</p>' +
+      '<label class="campo">Nome do cliente<input id="env-cli" maxlength="60" autocomplete="off" placeholder="Ex.: Maria" required></label>' +
+      '<fieldset><legend>No comparativo</legend><div class="env-lista">' + lista + '</div></fieldset>' + camposAssinatura() + '<p class="erro-txt" id="env-erro" role="alert"></p>',
+      '<button type="button" class="btn btn-pri btn-alto" data-acao="env-criar" id="env-ok">' + ICO.enviar + 'Criar o link</button>');
+    setTimeout(() => { const i = $('#env-cli'); if(i && !ehToque()) i.focus(); }, 80);
+  }
 
   // ================= PERFIL =================
   function telaPerfil(){
@@ -2064,9 +2623,17 @@
     let us, rotulo;
     if(sel && sel.size){ us = (det.dados.unidades || []).filter(a => sel.has(String(a[0]))).sort((x, y) => (precoU(x, modo) || 1e12) - (precoU(y, modo) || 1e12)); rotulo = plural(us.length, 'unidade marcada', 'unidades marcadas'); }
     else if(location.hash === '#/tabelas/' + p.id){
-      us = unidadesTabela(p, det, modo).us;
-      const fil = S.ui.tabFiltro;
-      rotulo = (fil === 'livres' ? plural(us.length, 'unidade livre', 'unidades livres') : plural(us.length, 'unidade', 'unidades') + (fil === 'mov' ? ' que mexeram hoje e ontem' : '')) + (S.ui.tabTipo ? ', ' + S.ui.tabTipo : '');
+      const f = espFiltro(p.id), resumo = efResumo(f);
+      if(vistaTab(det) === 'espelho'){   // o que está aceso no espelho (em "Total", as livres)
+        const U = espUnidades(det, S.centralV.get(p.id) || null), rec = recentesDe(det), st = f.st === 'todos' ? 'disponivel' : f.st;
+        us = U.filter(u => espBate(u, f, modo) && u.st === st && (!f.mov || rec.has(u.n))).map(u => u.a).sort((x, y) => (precoU(x, modo) || 1e12) - (precoU(y, modo) || 1e12));
+        const R = {disponivel: ['unidade livre', 'unidades livres'], reservada: ['unidade reservada', 'unidades reservadas'], processo_final: ['unidade em processo', 'unidades em processo'], vendida: ['unidade vendida', 'unidades vendidas']}[st] || ['unidade', 'unidades'];
+        rotulo = plural(us.length, R[0], R[1]) + (f.mov ? ' que mexeram hoje e ontem' : '') + (resumo ? ', ' + resumo : '');
+      }else{
+        us = unidadesTabela(p, det, modo).us;
+        const fil = S.ui.tabFiltro;
+        rotulo = (fil === 'livres' ? plural(us.length, 'unidade livre', 'unidades livres') : plural(us.length, 'unidade', 'unidades') + (fil === 'mov' ? ' que mexeram hoje e ontem' : '')) + (resumo ? ', ' + resumo : '');
+      }
     }else{
       us = (det.dados.unidades || []).filter(a => a[6] === 'disponivel').sort((x, y) => (precoU(x, modo) || 1e12) - (precoU(y, modo) || 1e12));
       rotulo = plural(us.length, 'unidade livre', 'unidades livres');
@@ -2280,6 +2847,41 @@
       }
       case 'tab-limpar': S.ui.tabSel.delete(id); atualizarTabela(); break;
       case 'tab-abrir': { const k = id + ':' + el.dataset.n; S.ui.tabAberta = S.ui.tabAberta === k ? null : k; atualizarTabela(); break; }
+      // ---- espelho do prédio
+      case 'tab-vista': S.ui.tabVista = v; LS.set('corretor-tab-vista', v); render(); break;
+      case 'ef': { const ef = S.ui.ef; if(!ef) break; const k = el.dataset.k; const nv = v === '' || v == null ? null : (k === 'pmax' ? +v : v); ef[k] = String(ef[k]) === String(nv) ? null : nv; S.ui.tabMostra = 150; atualizarTabela(); break; }
+      case 'ef-st': { const ef = S.ui.ef; if(!ef) break; ef.st = ef.st === v ? 'todos' : v; atualizarTabela(); break; }
+      case 'ef-mov': if(S.ui.ef){ S.ui.ef.mov = !S.ui.ef.mov; atualizarTabela(); } break;
+      case 'ef-final': if(S.ui.ef){ S.ui.ef.final = S.ui.ef.final === v ? null : v; atualizarTabela(); } break;
+      case 'ef-limpar': if(S.ui.ef){ S.ui.ef = Object.assign(EF0(), {pid: S.ui.ef.pid}); S.ui.tabQ = ''; const i = $('[data-input="tab-q"]'); if(i) i.value = ''; atualizarTabela(); } break;
+      case 'ef-mais': S.ui.efMais = !S.ui.efMais; atualizarTabela(); break;
+      case 'esp-denso': S.ui.espDenso = !S.ui.espDenso; LS.set('corretor-esp-denso', S.ui.espDenso ? '1' : ''); atualizarTabela(); break;
+      case 'esp-preco': S.ui.espPreco = S.ui.espPreco === false; atualizarTabela(); break;
+      case 'esp-u': abrirUnidadeEsp(S.ui.tabProj, el.dataset.n); break;
+      case 'un-marcar': {
+        const s = S.ui.tabSel.get(id) || new Set();
+        if(!s.has(el.dataset.n) && s.size >= 40){ toast('Até 40 unidades por link.'); break; }
+        marcarUnidade(id, el.dataset.n); break;
+      }
+      case 'un-mandar': { const s = S.ui.tabSel.get(id) || new Set(); s.add(el.dataset.n); S.ui.tabSel.set(id, s); fecharFolhas(); atualizarTabela(); abrirEnvio(id, true); break; }
+      case 'luz-un': abrirLuz(S.unLuz || [], +el.dataset.i || 0, nomeDaRota()); break;
+      // ---- comparar
+      case 'cp-tipo': if(S.cp){ S.cp.tipo = v; S.cp.fora = new Set(); if(v === 'escolha' && !S.cp.esc[0].pid && S.cp.pid) S.cp.esc[0] = {pid: S.cp.pid, n: S.cp.n}; render(); } break;
+      case 'cp-motivo': if(S.cp){ S.cp.motivo = v; S.cp.fora = new Set(); render(); } break;
+      case 'cp-modo': if(S.cp){ S.cp.modo = v; render(); } break;
+      case 'cp-escolher': abrirEscolhaProjeto(el.dataset.slot); break;
+      case 'cp-pick': {
+        const cp = S.cp, sl = S.cpSlot; if(!cp) break;
+        if(sl === 'ref'){ cp.pid = id; cp.n = null; cp.fora = new Set(); cp.inc = true; }
+        else{ const i = +sl; if(cp.esc[i]){ cp.esc[i] = {pid: id, n: null}; cp.fora = new Set(); } }
+        fecharFolhas(); render(); break;
+      }
+      case 'cp-incluir': if(S.cp){ if(el.dataset.orig === '1') S.cp.inc = !S.cp.inc; else { if(S.cp.fora.has(id)) S.cp.fora.delete(id); else S.cp.fora.add(id); } render(); } break;
+      case 'cp-add': if(S.cp && S.cp.esc.length < 5){ S.cp.esc.push({pid: null, n: null}); render(); } break;
+      case 'cp-tirar': if(S.cp && S.cp.esc.length > 2){ S.cp.esc.splice(+el.dataset.i, 1); render(); } break;
+      case 'cp-mandar': abrirEnvioCmp(); break;
+      case 'cp-espelho': S.ui.tabQ = el.dataset.n || ''; if(S.ui.tabProj !== id){ S.ui.tabProj = id; S.ui.tabFiltro = 'livres'; S.ui.tabMostra = 150; S.ui.tabAberta = null; S.ui.ef = null; S.ui.efMais = false; } break;
+      case 'luz-cp': { const it = (S.cpItens || [])[+el.dataset.k]; if(it && it.pl) abrirLuz([{src: it.pl.src, t: it.m.p.nome + ', ' + it.pl.t}], 0, it.m.p.nome); break; }
       // ---- envio
       case 'enviar': ev.preventDefault(); abrirEnvio(id, el.dataset.sel === '1'); break;
       case 'env-modo': if(S.envio){ S.envio.modo = v; $$('[data-acao="env-modo"]').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === v)); } break;
@@ -2339,7 +2941,8 @@
     else if(k === 'fnum'){ const c = el.dataset.campo; depois('fnum', 450, () => { if(CAMPO_F[c]){ S.f[CAMPO_F[c]] = lerValor(el.value, c); mudouFiltro(); } }); }
     else if(k === 'bairro-q'){ S.ui.bairroQ = el.value; depois('bq', 120, () => { const fc = facetas(S.f); $$('#f-bairros').forEach(b => { b.innerHTML = bairrosChips(fc); }); }); }
     else if(k === 'lista'){ S.ui.listaQ = el.value; depois('lista', 120, () => atualizarLista(el.dataset.modo)); }
-    else if(k === 'tab-q'){ S.ui.tabQ = el.value; depois('tq', 160, atualizarTabela); }
+    else if(k === 'tab-q'){ S.ui.tabQ = el.value; depois('tq', 160, () => { atualizarTabela(); espRolarAchada(); }); }
+    else if(k === 'cp-pq'){ depois('cpq', 120, () => { const l = $('#cp-lista'); if(l) l.innerHTML = cpListaProjHtml(el.value); }); }
     else if(k === 'post-texto'){ if(S.post){ S.post.titulo = $('#post-titulo').value; S.post.linha = $('#post-linha').value; depois('post', 160, desenharPost); } }
     else if(k === 'post-legenda'){ if(S.post) S.post.legenda = el.value; }
   });
@@ -2348,6 +2951,9 @@
     if(k === 'ordem'){ S.f.ordem = el.value; salvarF(); atualizarImoveis(); }
     else if(k === 'fnum'){ const c = el.dataset.campo, val = lerValor(el.value, c); if(CAMPO_F[c] && S.f[CAMPO_F[c]] !== val){ S.f[CAMPO_F[c]] = val; mudouFiltro(); } el.value = val ? val.toLocaleString('pt-BR') : ''; }
     else if(k === 'env-u'){ const n = $$('#env-us input:checked').length; if(n > 40){ el.checked = false; toast('Até 40 unidades por link.'); } }
+    else if(k === 'cp-un'){ if(S.cp){ S.cp.n = el.value || null; S.cp.fora = new Set(); render(); } }
+    else if(k === 'cp-raio'){ if(S.cp){ S.cp.raio = +el.value || 3; S.cp.fora = new Set(); render(); } }
+    else if(k === 'cp-esc-un'){ if(S.cp){ const i = +el.dataset.i; if(S.cp.esc[i]){ S.cp.esc[i].n = el.value || null; render(); } } }
     else if(k === 'post-arquivo'){
       const arq = el.files && el.files[0]; if(!arq || !S.post) return;
       const im = await carregarImg(URL.createObjectURL(arq), false);
@@ -2364,6 +2970,10 @@
   });
   document.addEventListener('keydown', ev => {
     if(S.luz && (ev.key === 'ArrowLeft' || ev.key === 'ArrowRight')){ ev.preventDefault(); irLuz(ev.key === 'ArrowLeft' ? -1 : 1); }
+    if(ev.key === 'Enter' && ev.target && ev.target.dataset && ev.target.dataset.input === 'tab-q'){   // Enter no nº da unidade abre a ficha dela no espelho
+      const q = norm(ev.target.value).trim(), ch = S.det.get(S.ui.tabProj), det = ch && ch.v;
+      if(q && det && vistaTab(det) === 'espelho' && (det.dados.unidades || []).some(a => norm(a[0]) === q)){ ev.preventDefault(); abrirUnidadeEsp(S.ui.tabProj, (det.dados.unidades || []).find(a => norm(a[0]) === q)[0]); }
+    }
   });
   window.addEventListener('hashchange', () => { S.veioDeDentro = true; fecharLuz(); });
 
