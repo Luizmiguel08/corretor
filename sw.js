@@ -1,7 +1,7 @@
 /* Service worker do App do Corretor: abre sem internet e guarda as fotos das fichas. */
-const VERSAO = 'corretor-20261015c';
+const VERSAO = 'corretor-20261016a';
 const CASCA = [
-  './', 'index.html', 'app.css?v=20261015b', 'app.js?v=20261015b', 'manifest.webmanifest',
+  './', 'index.html', 'app.css?v=20261016a', 'app.js?v=20261016a', 'manifest.webmanifest', 'fonts/mona-sans.woff2',
   'img/logo-fortal.png', 'icons/icon-192.png', 'icons/maskable-512.png', 'icons/apple-touch-icon.png', 'icons/favicon-64.png'
 ];
 const FOTOS = 'corretor-fotos';
@@ -36,15 +36,6 @@ self.addEventListener('fetch', ev => {
       if(res.ok){ const cp = res.clone(); caches.open(VERSAO).then(c => c.put(req, cp)); }
       return res;
     })));
-    return;
-  }
-  // fontes do Google: a salva primeiro (o endereço muda quando a fonte muda)
-  if(url.origin === 'https://fonts.googleapis.com' || url.origin === 'https://fonts.gstatic.com'){
-    ev.respondWith(caches.open(FOTOS).then(async c => {
-      const salvo = await c.match(req);
-      if(salvo) return salvo;
-      return fetch(req).then(res => { if(res.ok){ c.put(req, res.clone()); } return res; }).catch(() => Response.error());
-    }));
     return;
   }
   // fotos e fichas da central (mesmo site, /espelhos/nex/): usa a salva e atualiza por trás
