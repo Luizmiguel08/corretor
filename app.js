@@ -10,7 +10,7 @@
   const LOCAL = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);   // teste local: espelho copiado em /espelhos/
   const ESP = (NO_AR || LOCAL) ? '/espelhos/' : 'https://luizmiguel08.github.io/espelhos/';
   const FN_FOTO = CFG.url + '/functions/v1/corretor-foto';
-  const VERSAO = '2.1, de 16/10/2026';
+  const VERSAO = '2.1.1, de 16/10/2026';
   const K = {cod: 'espelhos-codigo', cor: 'espelhos-corretor', dono: 'espelhos-dono', cache: 'corretor-resumo-v2', tema: 'corretor-tema', filtro: 'corretor-filtro-v2'};
   const TZ = 'America/Sao_Paulo';
   const MQ_LARGO = matchMedia('(min-width: 1024px)');
@@ -1867,7 +1867,7 @@
     const ativos = efAtivos(f);
     const nMov = U.filter(u => recentes.has(u.n) && espBate(u, f, modo)).length;
     return '<div class="ef-filtros">' + linhas.slice(0, 2).join('') + (abertos ? extras.join('') : '') +
-      '<div class="ef-acoes">' + (extras.length ? '<button type="button" class="link-mais" data-acao="ef-mais" aria-expanded="' + abertos + '">' + (abertos ? 'Menos filtros' : 'Mais filtros<span class="l-longo">: ' + esc(extras.map(h => (/class="ef-rot">([^<]+)/.exec(h) || [])[1]).filter(Boolean).join(', ').toLowerCase()) + '</span>') + ' ' + ICO.baixo + '</button>' : '') +
+      '<div class="ef-acoes">' + (extras.length ? '<button type="button" class="link-mais" data-acao="ef-mais" aria-expanded="' + abertos + '">' + (abertos ? 'Menos filtros' : '<span>Mais filtros<span class="l-longo">: ' + esc(extras.map(h => (/class="ef-rot">([^<]+)/.exec(h) || [])[1]).filter(Boolean).join(', ').toLowerCase()) + '</span></span>') + ' ' + ICO.baixo + '</button>' : '') +
       (!emLista && (nMov || f.mov) ? '<button type="button" class="pilula peq" data-acao="ef-mov" aria-pressed="' + !!f.mov + '">Mexeram hoje e ontem<span class="n">' + nMov + '</span></button>' : '') +
       (f.final ? '<button type="button" class="pilula peq" data-acao="ef" data-k="final" data-v="" aria-label="Tirar o filtro do final ' + esc(f.final) + '">Final ' + esc(f.final) + ICO.x + '</button>' : '') +
       (ativos.length || (!emLista && (f.st !== 'todos' || f.mov)) ? '<button type="button" class="link-mais" data-acao="ef-limpar">Limpar filtros</button>' : '') + '</div></div>';
