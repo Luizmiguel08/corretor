@@ -10,7 +10,7 @@
   const LOCAL = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);   // teste local: espelho copiado em /espelhos/
   const ESP = (NO_AR || LOCAL) ? '/espelhos/' : 'https://luizmiguel08.github.io/espelhos/';
   const FN_FOTO = CFG.url + '/functions/v1/corretor-foto';
-  const VERSAO = '2.2, de 16/10/2026';
+  const VERSAO = '2.2.1, de 16/10/2026';
   const K = {cod: 'espelhos-codigo', cor: 'espelhos-corretor', dono: 'espelhos-dono', cache: 'corretor-resumo-v2', tema: 'corretor-tema', filtro: 'corretor-filtro-v2'};
   const TZ = 'America/Sao_Paulo';
   const MQ_LARGO = matchMedia('(min-width: 1024px)');
@@ -2397,6 +2397,12 @@
     l.valor = resto > 0 ? Math.round(resto / q * 100) / 100 : 0;
     return {i, resto, alvo};
   }
+  // as outras parcelas chegaram (ou passaram) no total: a linha de fechamento ficou sem valor
+  function passaTxt(fc, ls){
+    const outras = Math.round((fc.alvo - fc.resto) * 100) / 100, lf = ls[fc.i] || {};
+    return fc.resto < 0 ? 'As outras parcelas somam ' + fmtV(outras) + ', mais que o total de ' + fmtV(fc.alvo) + '. Diminua alguma delas.'
+      : 'As outras parcelas já somam ' + fmtV(fc.alvo) + ' e não sobra valor para “' + tituloLinha(lf) + '”. Diminua alguma delas.';
+  }
   function infoFin(ls, total){
     let i = -1; for(let j = ls.length - 1; j >= 0; j--) if(ehFin(ls[j])){ i = j; break; }
     if(i < 0 || !(total > 0)) return null;
@@ -2438,6 +2444,13 @@
     const lab = (pc.find(x => x.k === k) || {}).label || 'Valor';
     return {base: k, rotulo: rot, total: v, linhas: [{t: lab, v: BRL(v), s: ''}], nota};
   }
+  // fluxo que fecha sozinho e sem total negociado acompanha o valor atual da tabela (ex.: tabela nova do mês), como na central
+  function persAtual(det, a, pz){
+    if(!pz || !pz.auto || pz.alvo) return pz;
+    const tb = linhasDaTabela(det, a); if(!(tb.total > 0)) return pz;
+    const ls = pz.linhas.map(l => Object.assign({}, l));
+    return fecharConta(ls, tb.total).resto > 0 ? Object.assign({}, pz, {linhas: ls}) : pz;
+  }
   // a condição montada numa unidade aplicada a outra: mesma entrada e parcelas, o financiamento fecha no valor dela
   function persDerivado(det, a, pz){
     const tb = linhasDaTabela(det, a); if(!(tb.total > 0)) return null;
@@ -2451,7 +2464,7 @@
     const out = ns.map(n => {
       const a = porN.get(String(n)); if(!a) return {n};
       if(formato === 'pers'){
-        const pz = persDe(pid, n) || (fonte ? persDerivado(det, a, fonte) : null);
+        const pz = persAtual(det, a, persDe(pid, n)) || (fonte ? persDerivado(det, a, fonte) : null);
         if(pz) return {n, valores: valoresPers(pz)};
         pelaTabela.push(n);
       }
@@ -2463,7 +2476,7 @@
   // ---------- na folha da unidade ----------
   function persResumoHtml(p, det, a){
     if(a[6] !== 'disponivel') return '';
-    const n = String(a[0]), pz = persDe(p.id, n);
+    const n = String(a[0]), pz = persAtual(det, a, persDe(p.id, n));
     if(!pz) return '<div class="pers-cta"><p><b>Fluxo personalizado</b><span>Monte a condição do cliente (ato, mensais, financiamento). Ela vai junto quando você tocar em Mandar.</span></p>' +
       '<button type="button" class="btn btn-peq" data-fe="abrir">' + ICO.lapis + 'Montar fluxo</button></div>';
     const tot = totalDe(pz.linhas), tb = linhasDaTabela(det, a), d = tb.total > 0 ? Math.round((tot - tb.total) * 100) / 100 : 0;
@@ -2529,7 +2542,7 @@
     }
     const fin = $('#fe-fin', box), inf = infoFin(e.linhas, tot);
     if(fin){
-      if(fc && fc.resto <= 0){ fin.textContent = 'As outras parcelas já passam de ' + fmtV(fc.alvo) + '. Diminua alguma delas.'; fin.className = 'erro'; }
+      if(fc && fc.resto <= 0){ fin.textContent = passaTxt(fc, e.linhas); fin.className = 'erro'; }
       else if(inf){ const acima = e.limite != null && inf.pct > e.limite + 0.05; fin.textContent = 'Financiamento de ' + fmtV(inf.v) + ', ' + pctTxt(inf.pct) + ' do valor' + (acima ? '. Acima dos ' + pctTxt(e.limite) + ' da tabela: confirme com o banco e a construtora.' : '.'); fin.className = acima ? 'alerta' : ''; }
       else{ fin.textContent = ''; fin.className = ''; }
     }
@@ -2538,7 +2551,7 @@
   function feValidar(){
     const e = S.fe, ls = e.linhas;
     if(!ls.length) return 'Inclua pelo menos uma parcela.';
-    const fc = feRecalc(); if(fc && fc.resto <= 0) return 'As outras parcelas já passam de ' + fmtV(fc.alvo) + '. Diminua alguma delas.';
+    const fc = feRecalc(); if(fc && fc.resto <= 0) return passaTxt(fc, ls);
     for(const l of ls){
       if(!String(l.nome || '').trim()) return 'Dê um nome a cada parcela (ex.: Ato, mensais, Financiamento).';
       if(!(+l.q >= 1 && +l.q <= 480 && Number.isInteger(+l.q))) return 'A quantidade de "' + tituloLinha(l) + '" precisa ser um número inteiro de 1 a 480.';
@@ -2565,7 +2578,7 @@
   }
   function feAbrir(){
     const u = feUnidade(); if(!u) return;
-    const tb = linhasDaTabela(u.det, u.a), pz = persDe(u.pid, u.n), lim = tb.fluxo ? infoFin(tb.ls, tb.total) : null;
+    const tb = linhasDaTabela(u.det, u.a), pz = persAtual(u.det, u.a, persDe(u.pid, u.n)), lim = tb.fluxo ? infoFin(tb.ls, tb.total) : null;
     let alvo = '';
     if(pz && pz.alvo) alvo = numTxt(pz.alvo);
     else if(pz && pz.auto === undefined && tb.total && Math.abs(totalDe(pz.linhas) - tb.total) >= 1) alvo = numTxt(totalDe(pz.linhas));
@@ -2600,7 +2613,7 @@
     const u = feUnidade(); if(!u) return;
     const acao = b.dataset.fe;
     if(acao === 'abrir') return feAbrir();
-    if(acao === 'copiar'){ const pz = persDe(u.pid, u.n); if(pz) copiar(textoPers(u.p, u.det, u.a, pz), 'Fluxo copiado. Cole na conversa com o cliente.'); return; }
+    if(acao === 'copiar'){ const pz = persAtual(u.det, u.a, persDe(u.pid, u.n)); if(pz) copiar(textoPers(u.p, u.det, u.a, pz), 'Fluxo copiado. Cole na conversa com o cliente.'); return; }
     if(acao === 'descartar'){   // dois toques, sem janela do navegador
       if(b.dataset.certo !== '1'){ b.dataset.certo = '1'; b.textContent = 'Toque de novo para descartar'; setTimeout(() => { if(b.isConnected){ b.dataset.certo = ''; b.textContent = 'Descartar'; } }, 4000); return; }
       persGravar(u.pid, u.n, null); feRedesenhar(); toast('Fluxo personalizado descartado.'); return;
@@ -2610,8 +2623,15 @@
       if(e.linhas.length >= MAX_LINHAS) return;
       const m = MODELOS[+b.dataset.i]; if(!m) return;
       const nova = {q: m.q, nome: m.nome, valor: 0, quando: typeof m.quando === 'function' ? m.quando() : m.quando};
-      const fin = e.linhas.findIndex(l => /financ|chaves|saldo|repasse/i.test(l.nome));
-      const pos = /financ/i.test(m.nome) || fin < 0 ? e.linhas.length : (/^ato$/i.test(m.nome) ? 0 : fin);
+      const fin = e.linhas.findIndex(l => /financ|chaves|saldo|repasse/i.test(l.nome)), ehF = /financ/i.test(m.nome);
+      // o ato no começo, o financiamento no fim (ele fecha a conta), o resto antes do financiamento ou no fim
+      let pos = ehF ? e.linhas.length : /^ato$/i.test(m.nome) ? 0 : fin >= 0 ? fin : e.linhas.length;
+      // a linha nova é para digitar: se ali ela virasse a que fecha a conta (fluxo sem financiamento, ex.: entrada + mensais), entra antes da atual
+      if(!ehF){
+        const atual = e.linhas[linhaFechamento(e.linhas)];
+        const fica = k => { const t = e.linhas.slice(); t.splice(k, 0, nova); return t[linhaFechamento(t)] === atual; };
+        if(!fica(pos)){ const k = e.linhas.indexOf(atual); if(k >= 0 && fica(k)) pos = k; }
+      }
       e.linhas.splice(pos, 0, nova);
       feRedesenhar(false, '.fe-ln[data-i="' + pos + '"] [data-fe-in="valor"]:not([readonly])');
       return;
@@ -2621,8 +2641,8 @@
     if(acao === 'ajustar'){
       const alvo = numBR(e.alvo);
       if(!alvo || alvo <= 0){ feErro('Digite o total que quer fechar (ex.: 295.000).'); return; }
-      const i = linhaFechamento(e.linhas), l = e.linhas[i], q = +l.q || 1, resto = alvo - (totalDe(e.linhas) - q * (+l.valor || 0));
-      if(resto <= 0){ feErro('Com as outras parcelas já passa de ' + fmtV(alvo) + '. Diminua alguma delas antes.'); return; }
+      const i = linhaFechamento(e.linhas), l = e.linhas[i], q = +l.q || 1, resto = Math.round((alvo - (totalDe(e.linhas) - q * (+l.valor || 0))) * 100) / 100;
+      if(resto <= 0){ feErro(passaTxt({i, resto, alvo}, e.linhas)); return; }
       l.valor = Math.round(resto / q * 100) / 100; e.erro = ''; feRedesenhar();
       if(Math.abs(totalDe(e.linhas) - alvo) >= 0.01) toast('Arredondei os centavos: o total ficou ' + fmtV(totalDe(e.linhas)) + '.');
       return;
