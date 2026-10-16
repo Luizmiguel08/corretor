@@ -8,7 +8,7 @@
   const NO_AR = location.hostname === 'luizmiguel08.github.io';
   const LOCAL = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);   // teste local: espelho copiado em /espelhos/
   const ESP = (NO_AR || LOCAL) ? '/espelhos/' : 'https://luizmiguel08.github.io/espelhos/';
-  const VERSAO = '1.0 · 15/10/2026';
+  const VERSAO = '1.1 · 15/10/2026';
   const K = {cod: 'espelhos-codigo', cor: 'espelhos-corretor', dono: 'espelhos-dono', cache: 'corretor-resumo-v1', tema: 'corretor-tema'};
   const TZ = 'America/Sao_Paulo';
 
@@ -82,9 +82,11 @@
   const GRUPOS = {
     one: {n: 'ONE', l: 'ONE Innovation', s: 'ONE'}, vitacon: {n: 'Vitacon', l: 'Vitacon', s: 'VTC'}, maskan: {n: 'Maskan', l: 'Maskan', s: 'MSK'},
     trisul: {n: 'Trisul', l: 'Trisul', s: 'TRI'}, canopus: {n: 'Canopus', l: 'Canopus', s: 'CNP'}, vitaurbana: {n: 'VitaUrbana', l: 'VitaUrbana', s: 'VU'},
-    jra: {n: 'JRA', l: 'JRA', s: 'JRA'}, revenda: {n: 'Revenda ONE', l: 'Revenda ONE', s: 'REV'}
+    jra: {n: 'JRA', l: 'JRA', s: 'JRA'}, revenda: {n: 'Revenda ONE', l: 'Revenda ONE', s: 'REV'}, mundoapto: {n: 'Mundo Apto', l: 'Mundo Apto', s: 'MA'}
   };
-  const ORDEM_GRUPOS = ['one', 'vitacon', 'maskan', 'trisul', 'canopus', 'vitaurbana', 'jra', 'revenda'];
+  const ORDEM_GRUPOS = ['one', 'vitacon', 'maskan', 'trisul', 'canopus', 'vitaurbana', 'mundoapto', 'jra', 'revenda'];
+  const nomeGrupo = k => GRUPOS[k] ? GRUPOS[k].n : ((S.P.find(p => p.grupo === k) || {}).construtora || k);
+  const gruposPresentes = () => { const ks = new Set(S.P.map(p => p.grupo).filter(Boolean)); return ORDEM_GRUPOS.filter(k => ks.has(k)).concat([...ks].filter(k => !ORDEM_GRUPOS.includes(k)).sort()); };
   const FASE = {lanc: 'Lançamento', breve: 'Breve lançamento', obras: 'Em obras', pronto: 'Pronto para morar'};
   const FASE_MIN = {lanc: 'lançamento', breve: 'breve lançamento', obras: 'em obras', pronto: 'pronto para morar'};
   const ZONA = {centro: 'Centro', oeste: 'Oeste', sul: 'Sul', leste: 'Leste', norte: 'Norte', gsp: 'Grande SP'};
@@ -422,7 +424,7 @@
     const porG = {}; for(const p of vivos){ const k = p.grupo || '_'; porG[k] = (porG[k] || 0) + 1; }
     const gs = ORDEM_GRUPOS.filter(k => porG[k]).concat(Object.keys(porG).filter(k => k !== '_' && !ORDEM_GRUPOS.includes(k)));
     h += '<section class="sec" aria-labelledby="cons-t" style="padding-bottom:12px"><h2 class="h2" id="cons-t">Por construtora</h2><div class="pilulas" style="margin-top:12px">' +
-      gs.map(k => '<a class="pilula" href="#/imoveis" data-acao="ver-cons" data-v="' + esc(k) + '">' + esc(GRUPOS[k] ? GRUPOS[k].n : k) + '<span class="n">' + porG[k] + '</span></a>').join('') + '</div></section>';
+      gs.map(k => '<a class="pilula" href="#/imoveis" data-acao="ver-cons" data-v="' + esc(k) + '">' + esc(nomeGrupo(k)) + '<span class="n">' + porG[k] + '</span></a>').join('') + '</div></section>';
     return h;
   }
   function heroHtml(p){
@@ -513,10 +515,10 @@
     const res = S.P.filter(p => passa(p)).sort(ORDENS[f.ordem] || ORDENS.vendidos);
     // chips de construtora e fase
     const baseC = S.P.filter(p => passa(p, 'cons'));
-    const gs = ORDEM_GRUPOS.filter(k => S.P.some(p => p.grupo === k));
+    const gs = gruposPresentes();
     const chipC = '<div class="pilulas rola" role="group" aria-label="Construtora">' +
       '<button type="button" class="pilula peq" data-acao="cons" data-v="" aria-pressed="' + (!f.cons.length) + '">Todas<span class="n">' + baseC.length + '</span></button>' +
-      gs.map(k => '<button type="button" class="pilula peq" data-acao="cons" data-v="' + k + '" aria-pressed="' + f.cons.includes(k) + '">' + esc(GRUPOS[k].n) + '<span class="n">' + baseC.filter(p => p.grupo === k).length + '</span></button>').join('') + '</div>';
+      gs.map(k => '<button type="button" class="pilula peq" data-acao="cons" data-v="' + esc(k) + '" aria-pressed="' + f.cons.includes(k) + '">' + esc(nomeGrupo(k)) + '<span class="n">' + baseC.filter(p => p.grupo === k).length + '</span></button>').join('') + '</div>';
     const baseF = S.P.filter(p => passa(p, 'fase'));
     const chipF = '<div class="pilulas rola" role="group" aria-label="Fase da obra">' +
       '<button type="button" class="pilula peq" data-acao="fase" data-v="" aria-pressed="' + (!f.fases.length) + '">Todas as fases</button>' +
