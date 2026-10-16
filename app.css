@@ -1041,3 +1041,83 @@ body.sem-casca .toast{bottom:24px}
   .imp-legal{margin:2mm 0 0;font-size:7pt;line-height:1.4;color:#675F51}
   .imp .img-falhou{display:none!important}
 }
+
+/* ---------- 2.2: fluxo personalizado na folha da unidade ---------- */
+.un-fluxo summary small{margin-left:auto;padding-left:12px;font-size:12.5px;font-weight:500;color:var(--apoio)}
+.un-pers{display:flex;flex-direction:column;gap:12px}
+.pers-cta{display:flex;align-items:center;justify-content:space-between;gap:12px 16px;flex-wrap:wrap;padding:14px 16px;border-radius:var(--r2);border:1px dashed var(--contorno)}
+.pers-cta p{margin:0;display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 220px}
+.pers-cta b{font-size:15px;line-height:20px;font-weight:650}
+.pers-cta span{font-size:13.5px;line-height:19px;color:var(--apoio2)}
+.pers-cta .btn svg{width:18px;height:18px}
+.pers-box{display:flex;flex-direction:column;gap:12px;padding:14px 16px 16px;border-radius:var(--r2);border:1px solid var(--ouro);background:var(--sup)}
+.pers-box.editor{border-color:var(--contorno)}
+.pers-cab{display:flex;align-items:center;justify-content:space-between;gap:8px 12px;flex-wrap:wrap}
+.pers-cab h3{margin:0;font-size:16px;line-height:21px;font-weight:660;font-stretch:110%}
+.pers-acoes{display:flex;gap:4px 14px;flex-wrap:wrap}
+.pers-acoes .link-mais{min-height:40px;font-size:14px}
+.pers-acoes .link-mais svg{width:16px;height:16px}
+.pers-ls{display:flex;flex-direction:column}
+.pers-ls .ln{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--linha)}
+.pers-ls .ln > span{display:flex;flex-direction:column;min-width:0;font-size:14.5px;line-height:20px;font-weight:600}
+.pers-ls .ln small{font-size:12.5px;line-height:17px;font-weight:450;color:var(--apoio)}
+.pers-ls .ln small.acima{color:var(--alerta)}
+.pers-ls .ln b{font-size:15px;line-height:20px;font-weight:660;white-space:nowrap}
+.pers-ls .ln.tot{border-bottom:0;padding-top:11px}
+.pers-ls .ln.tot b{font-size:18px;color:var(--ouro)}
+.pers-info{display:flex;align-items:center;justify-content:space-between;gap:6px 12px;flex-wrap:wrap;font-size:13px;line-height:18px;color:var(--apoio)}
+.pers-info .link-mais{min-height:40px;font-size:13.5px;color:var(--alerta)}
+.fe-dica{margin:0;font-size:13.5px;line-height:20px;color:var(--apoio2)}
+.fe{display:flex;flex-direction:column}
+.fe-ln{display:grid;grid-template-columns:64px minmax(0,1fr) 44px;grid-template-areas:"q n x" "vs vs vs" "sub sub sub";gap:8px 10px;padding:12px 0;border-bottom:1px solid var(--linha)}
+.fe-ln:first-child{padding-top:2px}
+.fe-ln label{display:flex;flex-direction:column;gap:4px;min-width:0}
+.fe-ln label > span{font-size:12px;line-height:15px;font-weight:600;color:var(--apoio)}
+.fe-ln input{width:100%;min-width:0;min-height:44px;border-radius:12px;border:1px solid var(--contorno);background:var(--fundo);padding:0 10px;font-size:16px;color:var(--texto);font-variant-numeric:tabular-nums}
+.fe-ln input:focus-visible,.fe-neg input:focus-visible{outline:2px solid var(--texto);outline-offset:1px}
+.fe-q{grid-area:q}.fe-n{grid-area:n}
+.fe-x{grid-area:x;align-self:end;width:44px;height:44px;border-radius:12px;border:1px solid transparent;background:transparent;color:var(--apoio);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.fe-x:hover:not(:disabled){border-color:var(--contorno);color:var(--texto)}
+.fe-x:disabled{opacity:.35;cursor:default}
+.fe-x svg{width:16px;height:16px}
+.fe-vs{grid-area:vs;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px 10px}
+.fe-sub{grid-area:sub;font-size:12.5px;line-height:16px;color:var(--apoio)}
+.fe-sub:empty{display:none}
+.fe-ln.fecha .fe-v input{border-color:var(--ouro);background:var(--sup2);font-weight:650;color:var(--ouro)}
+.fe-ln.fecha .fe-v > span{color:var(--ouro)}
+.fe-add{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.fe-add > span{font-size:13px;font-weight:620;color:var(--apoio);margin-right:4px}
+.fe-auto{display:flex;align-items:center;gap:10px;min-height:44px;font-size:14.5px;line-height:20px;font-weight:560;cursor:pointer}
+.fe-auto input{width:20px;height:20px;margin:0;accent-color:var(--texto);flex-shrink:0}
+.fe-tot{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;padding:12px 14px;border-radius:var(--r2);background:var(--sup2)}
+.fe-tot > span{font-size:14px;font-weight:620}
+.fe-tot b{font-size:20px;line-height:1.2;font-weight:680;color:var(--ouro);text-align:right}
+.fe-tot small{grid-column:1 / -1;font-size:13px;line-height:18px;color:var(--apoio2)}
+.fe-tot small:empty{display:none}
+.fe-tot small.ok{color:var(--s-livre-l)}
+.fe-tot small.acima,.fe-tot small.erro{color:var(--alerta)}
+.fe-tot small.alerta{color:var(--ouro)}
+.fe-neg{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap}
+.fe-neg .campo{flex:1 1 220px}
+.fe-neg .campo input{background:var(--fundo)}
+.fe-bts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.fe-bts .btn svg{width:18px;height:18px}
+@media (min-width:700px){
+  .folha-un .fe-ln{grid-template-columns:68px minmax(0,1fr) minmax(0,2.3fr) 44px;grid-template-areas:"q n vs x" ". sub sub ."}
+  .folha-un .fe-vs{grid-template-columns:minmax(0,1fr) minmax(0,1.3fr)}
+}
+/* o que o cliente recebe */
+.env-ops{display:flex;flex-direction:column;gap:8px}
+.env-op{display:grid;grid-template-columns:22px minmax(0,1fr);gap:12px;align-items:start;width:100%;padding:12px 14px;border-radius:var(--r2);border:1px solid var(--linha);background:var(--sup);color:var(--texto);text-align:left;cursor:pointer}
+.env-op:hover{border-color:var(--contorno)}
+.env-op[aria-checked="true"]{border-color:var(--texto);box-shadow:inset 0 0 0 1px var(--texto)}
+.env-op i{width:20px;height:20px;margin-top:1px;border-radius:50%;border:2px solid var(--contorno)}
+.env-op[aria-checked="true"] i{border-color:var(--texto);background:radial-gradient(circle,var(--texto) 0 4px,transparent 5px)}
+.env-op span{display:flex;flex-direction:column;gap:2px;min-width:0}
+.env-op b{font-size:15px;line-height:20px;font-weight:650}
+.env-op small{font-size:13px;line-height:18px;color:var(--apoio2)}
+/* book no projeto */
+.btn-linha.tres{grid-template-columns:repeat(3,minmax(0,1fr))}
+.btn-linha.tres .btn{padding:0 8px}
+.un-pers:empty{display:none}
+a.opcao{text-decoration:none}

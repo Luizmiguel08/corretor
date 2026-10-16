@@ -10,7 +10,7 @@
   const LOCAL = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);   // teste local: espelho copiado em /espelhos/
   const ESP = (NO_AR || LOCAL) ? '/espelhos/' : 'https://luizmiguel08.github.io/espelhos/';
   const FN_FOTO = CFG.url + '/functions/v1/corretor-foto';
-  const VERSAO = '2.1.1, de 16/10/2026';
+  const VERSAO = '2.2, de 16/10/2026';
   const K = {cod: 'espelhos-codigo', cor: 'espelhos-corretor', dono: 'espelhos-dono', cache: 'corretor-resumo-v2', tema: 'corretor-tema', filtro: 'corretor-filtro-v2'};
   const TZ = 'America/Sao_Paulo';
   const MQ_LARGO = matchMedia('(min-width: 1024px)');
@@ -912,13 +912,13 @@
       const k = x.p.id + '|' + x.u.n, mk = S.sel.has(k), m2 = x.pr > 0 && x.u.a ? x.pr / x.u.a : null;
       const tipo = x.u.k ? tipoNome(x.u.k) : '', area = x.u.a ? fmtM2(x.u.a) : '', cat = x.u.c ? CAT_TXT[x.u.c] : '';
       const andar = andarCurto(x.u.at) ? andarCurto(x.u.at) + (/^\d+$/.test(x.u.at || '') ? ' andar' : '') : '', vaga = vagaTxt(x.u.vg);
-      const desc = [tipo, area, andar, vaga, cat].filter(Boolean).join(', ');
+      const desc = [tipo, area, andar, vaga, cat, x.u.f & 1 ? 'mobiliado' : ''].filter(Boolean).join(', ');
       return '<div class="tu-lin' + (mk ? ' marcada' : '') + '" role="row">' +
         '<span role="cell" class="tu-ck"><button type="button" class="ck-btn" data-acao="sel-u" data-p="' + esc(x.p.id) + '" data-n="' + esc(x.u.n) + '" aria-pressed="' + mk + '" aria-label="Marcar a unidade ' + esc(x.u.n) + ' do ' + esc(x.p.nome) + '"><span class="ck">' + ICO.ok + '</span></button></span>' +
         '<a role="cell" class="tu-proj" href="#/p/' + esc(x.p.id) + '" title="' + esc(x.p.nome) + '">' + miniProj(x.p, 'peq') + '<span><b>' + esc(x.p.nome) + '</b><small>' + esc([quemDe(x.p), x.p.bairro].filter(Boolean).join(', ')) + '</small></span></a>' +
         '<span role="cell" class="tu-n num"><b>' + esc(x.u.n) + '</b><small class="tu-desc">' + esc(desc) + '</small>' + (cat ? '<small class="tu-cat">' + esc(cat) + '</small>' : '') + '</span>' +
         '<span role="cell" class="tu-x">' + par(tipo, area) + '</span>' +
-        '<span role="cell" class="tu-x">' + par(andar, vaga) + '</span>' +
+        '<span role="cell" class="tu-x">' + par(andar, [vaga, x.u.f & 1 ? 'mobiliado' : ''].filter(Boolean).join(', ')) + '</span>' +
         '<span role="cell" class="tu-p num">' + (x.pr > 0 ? '<b>' + esc(BRL(x.pr)) + '</b>' : '<span class="apoio">sem preço</span>') + (m2 ? '<small>' + esc(BRL(m2)) + '/m²</small>' : '') + '</span>' +
         '<span role="cell" class="tu-x tu-e">' + esc(entregaCurta(x.p)) + '</span></div>';
     };
@@ -955,6 +955,7 @@
     h += sec('vaga', 'Vaga de garagem', '<div class="pilulas">' + [[0, 'Tanto faz'], [1, 'Com vaga'], [2, '2 vagas ou +']].map(o => '<button type="button" class="pilula peq" data-acao="f-vaga" data-v="' + o[0] + '" aria-pressed="' + (f.vaga === o[0]) + '">' + o[1] + '</button>').join('') + '</div>', 'onde o espelho informa');
     h += sec('ent', 'Entrega', '<div class="pilulas">' + [['', 'Tanto faz'], ['pronto', 'Pronto'], ['2026', 'até 2026'], ['2027', 'até 2027'], ['2028', 'até 2028'], ['2029', 'até 2029'], ['2030', 'até 2030']].map(o => '<button type="button" class="pilula peq" data-acao="f-ent" data-v="' + o[0] + '" aria-pressed="' + (f.ent === o[0]) + '">' + o[1] + (o[0] ? '<span class="n" data-cnt="ent:' + o[0] + '">' + (fc.ent[o[0]] || 0) + '</span>' : '') + '</button>').join('') + '</div>' +
       '<p class="fsub">Fase da obra</p><div class="pilulas">' + ['lanc', 'breve', 'obras', 'pronto'].map(k => chipF('fases', k, FASE_CURTA[k], f.fases.includes(k), fc.fases[k])).join('') + '</div>');
+    h += sec('mob', 'Mobília', '<div class="pilulas">' + chipF('extras', 'mob', 'Mobiliado', f.extras.includes('mob'), fc.extras.mob) + '</div>', 'entregue com móveis, onde a ficha informa');
     h += sec('regiao', 'Região', '<div class="pilulas">' + Object.keys(ZONA).filter(z => S.P.some(p => p.zona === z)).map(z => chipF('zonas', z, ZONA[z], f.zonas.includes(z), fc.zonas[z])).join('') + '</div>' +
       '<p class="fsub">Bairros</p><label class="busca mini"><span class="sr">Buscar bairro</span>' + ICO.lupa + '<input id="f-bairro-q" type="search" autocomplete="off" placeholder="Buscar bairro" value="' + esc(S.ui.bairroQ) + '" data-input="bairro-q"></label>' +
       '<div class="pilulas" id="f-bairros">' + bairrosChips(fc) + '</div>' +
@@ -962,7 +963,7 @@
         : '<button type="button" class="btn btn-peq" data-acao="f-perto">' + ICO.mira + 'Usar minha localização</button><p class="nota">A localização fica só neste aparelho.</p>'));
     h += sec('cons', 'Construtora', '<div class="pilulas">' + gruposPresentes().map(k => chipF('cons', k, nomeGrupo(k), f.cons.includes(k), fc.cons[k])).join('') + '</div>');
     h += sec('cats', 'Enquadramento', '<div class="pilulas">' + CATS.map(x => chipF('cats', x[0], x[1], f.cats.includes(x[0]), fc.cats[x[0]])).join('') + '</div>', 'categoria da unidade no espelho');
-    h += sec('extras', 'Extras da unidade', '<div class="pilulas">' + EXTRAS.map(x => chipF('extras', x[0], x[1], f.extras.includes(x[0]), fc.extras[x[0]])).join('') + '</div>');
+    h += sec('extras', 'Extras da unidade', '<div class="pilulas">' + EXTRAS.filter(x => x[0] !== 'mob').map(x => chipF('extras', x[0], x[1], f.extras.includes(x[0]), fc.extras[x[0]])).join('') + '</div>');
     h += sec('mov', 'Movimento', '<div class="pilulas">' + [['', 'Tanto faz'], ['hoje', 'Mexeu hoje'], ['semana', 'Vendeu na semana']].map(o => '<button type="button" class="pilula peq" data-acao="f-mov" data-v="' + o[0] + '" aria-pressed="' + (f.mov === o[0]) + '">' + o[1] + (o[0] ? '<span class="n" data-cnt="mov:' + o[0] + '">' + (fc.mov[o[0]] || 0) + '</span>' : '') + '</button>').join('') + '</div>');
     h += sec('estoque', 'Estoque', '<div class="pilulas">' + '<button type="button" class="pilula peq" data-acao="f-livres" data-v="1" aria-pressed="' + f.livres + '">Só com unidade livre</button><button type="button" class="pilula peq" data-acao="f-livres" data-v="0" aria-pressed="' + !f.livres + '">Incluir esgotados</button></div>');
     h += '<div class="painel-pe so-largo"><button type="button" class="btn btn-largo" data-acao="limpar-tudo">Limpar os filtros</button><p class="nota">Os números contam projetos com o resto do filtro aplicado.</p></div>';
@@ -1033,6 +1034,28 @@
   const stLabel = (det, st) => (det.dados.status && det.dados.status[st]) || ({disponivel: 'Disponível', reservada: 'Reservada', vendida: 'Vendida', processo_final: 'Em processo'}[st] || st);
   const nomeTabela = t => /^tabela/i.test(String(t).trim()) ? String(t).trim() : 'Tabela ' + t;
   const vagaDe = (det, a) => { const v = det.info && det.info.vagas; if(!v || !['todas', 'algumas', 'nenhuma'].includes(v.r)) return null; if(v.r === 'nenhuma') return 0; const n = v.u && typeof v.u === 'object' ? parseInt(v.u[String(a[0])], 10) : NaN; return n > 0 ? n : (v.r === 'todas' && !(v.u && typeof v.u === 'object') ? 1 : 0); };
+
+  // book do empreendimento: da central (no próprio site ou no Drive), da documentação da construtora, do material do WhatsApp,
+  // o PDF achado na pasta do book (servidor) e, por último, a pasta do book no Drive
+  ICO.livro = svg('<path d="M12 6.5C10 5 7 4.5 4 5v14c3-.5 6 0 8 1.5 2-1.5 5-2 8-1.5V5c-3-.5-6 0-8 1.5z"/><path d="M12 6.5V20"/>');
+  const driveBaixar = id => 'https://drive.google.com/uc?export=download&id=' + encodeURIComponent(id);
+  const idDrive = id => !!id && /^[A-Za-z0-9_-]{10,}$/.test(String(id)) && !/^[a-z]+-/.test(String(id));
+  const idPasta = u => { const m = /\/folders\/([A-Za-z0-9_-]{10,})/.exec(String(u || '')); return m ? m[1] : null; };
+  function bookDe(det, c){
+    if(c && c.book && c.pasta && /^[A-Za-z0-9_.-]+\.pdf$/i.test(c.book)) return {u: ESP + 'nex/' + c.pasta + c.book, t: 'Book do empreendimento', s: 'PDF', arq: true, mesmo: true};
+    const mo = c && Array.isArray(c.material_oficial) ? c.material_oficial.filter(m => m && idDrive(m.id) && /book/i.test((m.c || '') + ' ' + (m.n || ''))) : [];
+    const m = mo.find(x => /cliente/i.test(x.c || '')) || mo.find(x => !/vista/i.test(x.c || '')) || mo[0];
+    if(m) return {u: driveBaixar(m.id), t: m.c || 'Book', s: m.mb ? String(m.mb).replace('.', ',') + ' MB' : 'PDF', arq: true};
+    const dp = det.docs && det.docs.projeto;
+    const d = dp && Array.isArray(dp.docs) ? dp.docs.find(x => x && x.c === 'book' && (urlSegura(x.u) || (x.x !== 'link' && idDrive(x.id)))) : null;
+    if(d) return {u: urlSegura(d.u) || driveBaixar(d.id), t: d.t || d.a || 'Book', s: [d.a, d.d].filter(Boolean).join(', ') || 'PDF', arq: true};
+    const mat = det.info && Array.isArray(det.info.material) ? det.info.material.find(x => x && x.tipo === 'pdf' && /book/i.test(x.t || '') && urlSegura(x.u)) : null;
+    if(mat) return {u: mat.u, t: mat.t, s: 'PDF', arq: true};
+    if(det.book && idDrive(det.book.id)) return {u: driveBaixar(det.book.id), t: det.book.t || 'Book', s: 'PDF', arq: true};
+    const pid = idPasta(det.info && det.info.drive && det.info.drive.book) || (dp && Array.isArray(dp.pastas) ? (dp.pastas.find(x => x && /^book/i.test(x.c || '') && idDrive(x.id)) || {}).id : null);
+    if(pid) return {u: drivePasta(pid), t: 'Pasta do book', s: 'Google Drive', arq: false};
+    return null;
+  }
 
   // fluxo de pagamento (mesma regra do app dos Espelhos)
   function fluxoDe(det, a){
@@ -1147,7 +1170,7 @@
     return [...g.values()].sort((a, b) => (a.pmin == null ? 1e12 : a.pmin) - (b.pmin == null ? 1e12 : b.pmin));
   }
   function painelProj(p, det, c){
-    const d = det.dados, info = det.info || {}, chave = chaveBase(det), pc = precosCampos(det);
+    const d = det.dados, info = det.info || {}, chave = chaveBase(det), pc = precosCampos(det), bk = bookDe(det, c);
     const temPv = pc.some(x => x.k === 'pv');
     const us = d.unidades || [];
     const tot = us.length, liv = us.filter(a => a[6] === 'disponivel').length, vend = us.filter(a => a[6] === 'vendida').length, res = us.filter(a => a[6] === 'reservada').length, proc = us.filter(a => a[6] === 'processo_final').length;
@@ -1163,7 +1186,9 @@
       '<div class="barra" role="img" aria-label="' + esc(vend + ' vendidas, ' + (res + proc) + ' reservadas ou em processo e ' + liv + ' livres') + '"><i class="vd" style="width:' + pct(vend, tot) + '%"></i><i class="rs" style="width:' + pct(res + proc, tot) + '%"></i></div>' +
       '<div class="legenda num"><span><i class="c-vd"></i>' + vend + ' vendidas</span><span><i class="c-rs"></i>' + (res + proc) + ' reservadas</span><span><i class="c-lv"></i>' + liv + ' livres</span></div></div>' +
       '<div class="acoes-proj"><button type="button" class="btn btn-pri btn-alto" data-acao="enviar" data-id="' + esc(p.id) + '">' + ICO.enviar + 'Mandar pro cliente</button>' +
-      '<div class="btn-linha"><a class="btn" href="#/tabelas/' + esc(p.id) + '">' + ICO.planilha + 'Tabela</a><button type="button" class="btn" data-acao="menu-baixar" data-id="' + esc(p.id) + '">' + ICO.baixar + 'Baixar</button></div>' +
+      '<div class="btn-linha' + (bk ? ' tres' : '') + '"><a class="btn" href="#/tabelas/' + esc(p.id) + '">' + ICO.planilha + 'Tabela</a>' +
+      (bk ? '<a class="btn" href="' + esc(bk.u) + '" target="_blank" rel="noopener"' + (bk.mesmo ? ' download' : '') + ' title="' + esc(bk.arq ? 'Baixar o book (' + bk.t + ')' : 'Abrir a pasta do book no Google Drive') + '">' + ICO.livro + 'Book</a>' : '') +
+      '<button type="button" class="btn" data-acao="menu-baixar" data-id="' + esc(p.id) + '">' + ICO.baixar + 'Baixar</button></div>' +
       '<div class="btn-linha"><a class="btn btn-fino" href="#/comparar?p=' + encodeURIComponent(p.id) + '">' + ICO.comparar + 'Comparar</a><a class="btn btn-fino" href="#/posts/' + esc(p.id) + '">' + ICO.foto + 'Criar post</a></div></div>' +
       '<p class="nota">' + esc([tab.nome ? nomeTabela(tab.nome) : '', d.atualizado_em ? 'espelho lido ' + quandoTxt(Date.parse(d.atualizado_em)) : ''].filter(Boolean).join(', ')) + '.</p></section>';
   }
@@ -1316,11 +1341,9 @@
     const termos = norm(S.ui.listaQ).split(/\s+/).filter(Boolean);
     let ps = S.P.filter(p => !termos.length || termos.every(t => norm([p.nome, p.curto, p.bairro, quemDe(p), GRUPOS[p.grupo] ? GRUPOS[p.grupo].n : ''].join(' ')).includes(t)));
     ps = ps.sort((a, b) => (b.v7 - a.v7) || (b.r7 - a.r7) || ((b.livres > 0) - (a.livres > 0)) || String(a.nome).localeCompare(String(b.nome), 'pt-BR'));
-    const lim = termos.length ? 90 : 60;
-    $('#lista-n').textContent = termos.length ? plural(ps.length, 'projeto encontrado', 'projetos encontrados') : 'Os que mais vendem primeiro';
-    box.innerHTML = ps.slice(0, lim).map(p => '<li><a href="#/' + modo + '/' + esc(p.id) + '">' + miniProj(p) + '<span class="meio"><b>' + esc(p.nome) + '</b><span>' + esc([quemDe(p), p.bairro].filter(Boolean).join(', ')) + '</span><span>' + esc(modo === 'tabelas' ? (p.tabela ? 'Tabela ' + String(p.tabela).replace(/^tabela(s)? (de )?/i, '') : 'Sem tabela publicada') : plural(p.livres, 'livre', 'livres') + (p.v7 ? ', ' + plural(p.v7, 'venda', 'vendas') + ' na semana' : '')) + '</span></span>' +
+    $('#lista-n').textContent = termos.length ? plural(ps.length, 'projeto encontrado', 'projetos encontrados') : plural(ps.length, 'projeto', 'projetos') + ', os que mais vendem primeiro';
+    box.innerHTML = ps.map(p => '<li><a href="#/' + modo + '/' + esc(p.id) + '">' + miniProj(p) + '<span class="meio"><b>' + esc(p.nome) + '</b><span>' + esc([quemDe(p), p.bairro].filter(Boolean).join(', ')) + '</span><span>' + esc(modo === 'tabelas' ? (p.tabela ? 'Tabela ' + String(p.tabela).replace(/^tabela(s)? (de )?/i, '') : 'Sem tabela publicada') : plural(p.livres, 'livre', 'livres') + (p.v7 ? ', ' + plural(p.v7, 'venda', 'vendas') + ' na semana' : '')) + '</span></span>' +
       '<span class="fim">' + (precoDe(p) != null ? '<b class="num">' + esc(BRLc(precoDe(p))) + '</b>' : '') + '<span>' + esc(p.livres ? plural(p.livres, 'livre', 'livres') : 'esgotado') + '</span></span></a></li>').join('') +
-      (ps.length > lim ? '<li class="lista-mais">Mais ' + (ps.length - lim) + '. Digite o nome para achar.</li>' : '') +
       (!ps.length ? '<li class="lista-mais">Nenhum projeto com esse nome.</li>' : '');
   }
 
@@ -1465,21 +1488,29 @@
     const sel = daTabela ? new Set(S.ui.tabSel.get(id) || []) : new Set();
     const livres = (det.dados.unidades || []).filter(a => a[6] === 'disponivel').sort((x, y) => (precoU(x, chave) || 1e12) - (precoU(y, chave) || 1e12));
     if(!sel.size && livres[0]) sel.add(String(livres[0][0]));
-    const st = {id, sel, modo: S.ui.tabModo[id] || chave, formato: c && c.pagina ? 'ficha' : 'selecao', central: !!(c && c.pagina)};
+    const comPers = persDoProjeto(id).filter(n => livres.some(a => String(a[0]) === n));
+    const st = {id, sel, modo: S.ui.tabModo[id] || chave, formato: [...sel].some(n => persDe(id, n)) ? 'pers' : c && c.pagina ? 'ficha' : 'selecao', central: !!(c && c.pagina)};
     S.envio = st;
-    const listaU = livres.filter((a, i) => i < 80 || sel.has(String(a[0]))).map(a => {
+    const listaU = livres.filter((a, i) => i < 80 || sel.has(String(a[0]))).sort((x, y) => sel.has(String(y[0])) - sel.has(String(x[0]))).map(a => {
       const n = String(a[0]), v = precoU(a, st.modo) || precoU(a, chave);
       return '<label class="u-opc"><input type="checkbox" data-input="env-u" value="' + esc(n) + '"' + (sel.has(n) ? ' checked' : '') + '><span class="u-opc-t"><b class="num">' + esc(n) + '</b><span>' + esc([tipologiaU(det, a), areaU(a) ? fmtM2(areaU(a)) : '', andarTxt(a[4])].filter(Boolean).join(', ')) + '</span></span><span class="num ouro">' + (v ? esc(BRLc(v)) : '') + '</span></label>';
     }).join('');
     corpoFolha(
       '<div class="env-proj">' + miniProj(p) + '<p><b>' + esc(p.nome) + '</b><span>O cliente recebe um link com fotos e os valores das unidades marcadas.</span></p></div>' +
       '<label class="campo">Nome do cliente<input id="env-cli" maxlength="60" autocomplete="off" placeholder="Ex.: Maria" required></label>' +
+      envFormatosHtml(st, comPers) +
       '<fieldset><legend>Unidades (' + livres.length + ' livres)</legend><div class="u-opcs" id="env-us">' + (listaU || '<p class="texto-2">Nenhuma unidade livre agora.</p>') + '</div>' + (livres.length > 80 ? '<p class="nota">Mostrando as 80 mais em conta.</p>' : '') + '</fieldset>' +
-      (pc.length > 1 ? '<fieldset><legend>Valor mostrado</legend><div class="seg" role="group">' + pc.slice(0, 3).map(x => '<button type="button" data-acao="env-modo" data-v="' + esc(x.k) + '" aria-pressed="' + (st.modo === x.k) + '">' + esc(x.label) + '</button>').join('') + '</div></fieldset>' : '') +
-      (st.central ? '<fieldset><legend>Página que o cliente abre</legend><div class="seg" role="group"><button type="button" data-acao="env-fmt" data-v="ficha" aria-pressed="true">Ficha completa</button><button type="button" data-acao="env-fmt" data-v="selecao" aria-pressed="false">Só as unidades</button></div><p class="nota" id="env-fmt-nota">Fotos, plantas, lazer, mapa e até 4 unidades com valores.</p></fieldset>' : '') +
+      (pc.length > 1 ? '<fieldset id="env-modo-f"' + (st.formato === 'pers' ? ' hidden' : '') + '><legend>Valor mostrado</legend><div class="seg" role="group">' + pc.slice(0, 3).map(x => '<button type="button" data-acao="env-modo" data-v="' + esc(x.k) + '" aria-pressed="' + (st.modo === x.k) + '">' + esc(x.label) + '</button>').join('') + '</div></fieldset>' : '') +
       camposAssinatura() + '<p class="erro-txt" id="env-erro" role="alert"></p>',
       '<button type="button" class="btn btn-pri btn-alto" data-acao="env-criar" id="env-ok">' + ICO.enviar + 'Criar o link</button>', dlg);
     setTimeout(() => { const i = $('#env-cli'); if(i && !ehToque()) i.focus(); }, 80);
+  }
+  function envFormatosHtml(st, comPers){
+    const ops = [];
+    if(comPers.length) ops.push(['pers', 'Ficha com o fluxo personalizado', 'O fluxo que você montou' + (comPers.length <= 3 ? ' (' + comPers.join(', ') + ')' : '') + ', com fotos e plantas. As outras unidades marcadas recebem a mesma entrada e parcelas. Até 4 unidades.']);
+    ops.push(['ficha', st.central ? 'Ficha completa' : 'Ficha com a condição da tabela', 'Fotos, plantas' + (st.central ? ', lazer, mapa' : ' e mapa') + ' e o fluxo da tabela de cada unidade. Até 4 unidades.']);
+    ops.push(['selecao', 'Só as unidades', 'Uma página com as unidades marcadas, fotos e o preço de cada uma. Até 40 unidades.']);
+    return '<fieldset><legend>O que o cliente recebe</legend><div class="env-ops" role="radiogroup" aria-label="O que o cliente recebe">' + ops.map(o => '<button type="button" class="env-op" role="radio" data-acao="env-fmt" data-v="' + o[0] + '" aria-checked="' + (st.formato === o[0]) + '"><i aria-hidden="true"></i><span><b>' + esc(o[1]) + '</b><small>' + esc(o[2]) + '</small></span></button>').join('') + '</div></fieldset>';
   }
   function abrirEnvioMulti(){
     if(!S.sel.size) return;
@@ -1510,17 +1541,20 @@
       p = S.byId.get(st.id);
       const us = $$('#env-us input:checked').map(i => i.value);
       if(!us.length){ erro('Marque pelo menos uma unidade.'); return; }
-      if(st.central && st.formato === 'ficha' && us.length > 4){ erro('A ficha completa leva até 4 unidades. Desmarque algumas ou escolha "Só as unidades".'); return; }
-      formato = st.central && st.formato === 'ficha' ? 'ficha' : 'selecao';
+      formato = st.formato === 'pers' || st.formato === 'ficha' ? st.formato : 'selecao';
+      if(formato !== 'selecao' && us.length > 4){ erro('A ficha leva até 4 unidades. Desmarque algumas ou escolha "Só as unidades".'); return; }
+      if(formato === 'pers' && !us.some(n => persDe(p.id, n))){ erro('Nenhuma das unidades marcadas tem fluxo personalizado. Monte o fluxo na ficha da unidade ou escolha outra opção.'); return; }
       itens = us.map(n => ({p: p.id, n}));
       texto = p.nome;
     }
     salvarPerfil({nome: cor, tel});
     const b = $('#env-ok'); b.disabled = true; b.textContent = 'Criando o link…'; erro('');
     try{
-      let url, avisos = false;
-      if(formato === 'ficha'){
-        const r = await rpc('link_criar', {p_codigo: S.cod, p_dono: dono(), p_endpoint: null, p_projeto: p.id, p_cliente: cli, p_corretor: cor, p_whats: tel, p_unidades: itens.map(x => ({n: x.n}))});
+      let url, avisos = false, pelaTabela = [];
+      if(formato === 'ficha' || formato === 'pers'){
+        const det = await detalhe(p.id), vs = valoresDoEnvio(det, p.id, itens.map(x => x.n), formato, st.modo);
+        pelaTabela = vs.pelaTabela;
+        const r = await rpc('link_criar', {p_codigo: S.cod, p_dono: dono(), p_endpoint: null, p_projeto: p.id, p_cliente: cli, p_corretor: cor, p_whats: tel, p_unidades: vs.itens});
         const c = await fichaCentral(p.id);
         url = new URL(ESP + 'nex/' + ((c && c.pagina) || 'ver.html') + '?l=' + encodeURIComponent(r.id), location.href).href;
         avisos = !!r.avisos;
@@ -1531,11 +1565,11 @@
         avisos = !!r.avisos;
       }
       const qtd = itens.length, nome1 = primeiroNome(cli);
-      const msg = 'Olá, ' + nome1 + '! ' + (formato === 'ficha' ? 'Separei a ficha do ' + p.nome + ' para você, com fotos, plantas e os valores: '
+      const msg = 'Olá, ' + nome1 + '! ' + (formato === 'pers' ? 'Separei a ficha do ' + p.nome + ' com a condição de pagamento que montei para você: ' : formato === 'ficha' ? 'Separei a ficha do ' + p.nome + ' para você, com fotos, plantas e os valores: '
         : st.cmp ? 'Separei ' + qtd + ' opções para você comparar lado a lado, com fotos e valores: ' : st.multi ? 'Separei ' + (qtd === 1 ? 'uma opção' : qtd + ' opções') + ' para você, com fotos e valores: ' : 'Separei ' + (qtd === 1 ? 'uma opção' : qtd + ' opções') + ' do ' + p.nome + ' para você, com fotos e valores: ') + url;
       S.envioPronto = {url, msg};
       const dlg = $('#folha-envio'); if(!dlg) return;
-      corpoFolha('<div class="aviso ok" role="status">' + ICO.ok + '<p>Link pronto para ' + esc(nome1) + '. ' + (formato === 'ficha' ? 'Ficha completa' : 'Página') + ' com ' + esc(plural(qtd, 'unidade', 'unidades')) + '.' + (avisos ? ' Você recebe um aviso neste aparelho quando ' + esc(nome1) + ' abrir.' : '') + '</p></div>' +
+      corpoFolha('<div class="aviso ok" role="status">' + ICO.ok + '<p>Link pronto para ' + esc(nome1) + '. ' + (formato === 'pers' ? 'Ficha com o fluxo personalizado' : formato === 'ficha' ? 'Ficha' : 'Página') + ' com ' + esc(plural(qtd, 'unidade', 'unidades')) + '.' + (pelaTabela.length ? ' ' + esc((pelaTabela.length === 1 ? 'A ' + pelaTabela[0] + ' foi' : 'As unidades ' + pelaTabela.join(', ') + ' foram') + ' pela tabela: a mesma entrada e parcelas passam do valor dela.') : '') + (avisos ? ' Você recebe um aviso neste aparelho quando ' + esc(nome1) + ' abrir.' : '') + '</p></div>' +
         '<label class="campo">Mensagem<textarea id="env-msg" rows="5">' + esc(msg) + '</textarea><small>Dá para mudar o texto antes de mandar.</small></label>' +
         '<p class="link-pronto">' + esc(url) + '</p>' +
         '<a class="btn" href="' + esc(url) + '" target="_blank" rel="noopener">Ver como o cliente vê ' + ICO.seta + '</a>',
@@ -1772,8 +1806,9 @@
   const kmil = v => v >= 1e6 ? (Math.round(v / 1e4) / 100).toLocaleString('pt-BR') + ' mi' : Math.round(v / 1e3).toLocaleString('pt-BR') + ' mil';
   const m2c = v => (Math.round(v * 10) / 10).toLocaleString('pt-BR') + ' m²';
   const catNomeDe = (det, c) => (det.dados.cat_nome && det.dados.cat_nome[c]) || c;
-  const EF0 = () => ({st: 'todos', mov: false, tb: null, fx: null, tipo: null, cat: null, final: null, vista: null, vaga: null, pmax: null});
-  const EF_ROT = {tb: 'Tipologia', fx: 'Metragem', tipo: 'Planta', cat: 'Enquadramento', vista: 'Vista', vaga: 'Vaga', pmax: 'Valor até', final: 'Final'};
+  const EF0 = () => ({st: 'todos', mov: false, tb: null, fx: null, tipo: null, cat: null, final: null, vista: null, vaga: null, pmax: null, mob: null});
+  const EF_ROT = {tb: 'Tipologia', fx: 'Metragem', tipo: 'Planta', cat: 'Enquadramento', vista: 'Vista', vaga: 'Vaga', pmax: 'Valor até', final: 'Final', mob: 'Mobília'};
+  const mobProj = det => !!(det && det.info && det.info.mobiliado && det.info.mobiliado.r === 'todas');
   const espTemGrade = det => !!(det && det.dados && det.dados.grade && +det.dados.grade.colunas > 0 && Array.isArray(det.dados.grade.andares) && det.dados.grade.andares.length);
   const vistaTab = det => espTemGrade(det) && S.ui.tabVista !== 'lista' ? 'espelho' : 'lista';
   function espFiltro(id){ if(!S.ui.ef || S.ui.ef.pid !== id) S.ui.ef = Object.assign(EF0(), {pid: id}); return S.ui.ef; }
@@ -1791,11 +1826,12 @@
       const pl = c.plantas.find(x => Array.isArray(x.tipos) && x.tipos.map(String).includes(tipo)); if(!pl) return '';
       const t = norm(pl.t); return /^stud|^kitn/.test(t) ? 'Studio' : /^1 dorm/.test(t) ? '1 dorm' : /^2 dorm/.test(t) ? '2 dorms' : /^3 dorm/.test(t) ? '3 dorms' : /^4 dorm/.test(t) ? '4 dorms' : '';
     };
+    const mp = mobProj(det);
     const U = (d.unidades || []).map(a => {
       const ar = areaU(a), tl = tipologiaU(det, a) || tlCentral(a[1] ? String(a[1]) : '') || '', col = +a[5] || 0, loja = a[4] === 'L' || /^loja/i.test(tl);
       const vi = (Array.isArray(d.vistas) ? d.vistas : []).find(v => col >= +v.col_ini && col <= +v.col_fim);
       return {a, n: String(a[0]), tipo: a[1] ? String(a[1]) : null, ar, tl, cat: a[3] || null, andar: a[4], col, st: a[6], loja,
-        vista: vi ? vi.id : null, final: rot && !loja && rot[col] != null ? String(rot[col]) : null, fx: espFaixa(FX, ar), vg: vagaDe(det, a)};
+        vista: vi ? vi.id : null, final: rot && !loja && rot[col] != null ? String(rot[col]) : null, fx: espFaixa(FX, ar), vg: vagaDe(det, a), mob: mp || !!exDe(a).mob};
     });
     _espU.set(det, {c, U});
     return U;
@@ -1808,13 +1844,14 @@
     if(ign !== 'final' && f.final && u.final !== f.final) return false;
     if(ign !== 'vista' && f.vista && u.vista !== f.vista) return false;
     if(ign !== 'vaga' && f.vaga && vagaRot(u.vg) !== f.vaga) return false;
+    if(ign !== 'mob' && f.mob && !u.mob) return false;
     if(ign !== 'pmax' && f.pmax){ const v = precoU(u.a, modo); if(!(v > 0) || v > f.pmax) return false; }
     return true;
   }
   const espStBate = (u, f, recentes) => (f.st === 'todos' || u.st === f.st) && (!f.mov || recentes.has(u.n));
-  const efAtivos = f => ['tb', 'fx', 'tipo', 'cat', 'final', 'vista', 'vaga', 'pmax'].filter(k => f[k] != null && f[k] !== '');
+  const efAtivos = f => ['tb', 'fx', 'tipo', 'cat', 'final', 'vista', 'vaga', 'pmax', 'mob'].filter(k => f[k] != null && f[k] !== '');
   function efResumo(f){   // "Studio, até 25 m², até R$ 190 mil"
-    return efAtivos(f).map(k => k === 'pmax' ? 'até ' + BRLc(f.pmax) : k === 'final' ? 'final ' + f.final : k === 'tipo' ? String(f.tipo).replace(/^TIPO /i, 'tipo ') : String(f[k])).join(', ');
+    return efAtivos(f).map(k => k === 'pmax' ? 'até ' + BRLc(f.pmax) : k === 'final' ? 'final ' + f.final : k === 'mob' ? 'mobiliado' : k === 'tipo' ? String(f.tipo).replace(/^TIPO /i, 'tipo ') : String(f[k])).join(', ');
   }
   function espPassos(U, modo){   // "valor até": quartis arredondados dos preços das livres
     const vs = U.filter(u => u.st === 'disponivel').map(u => precoU(u.a, modo)).filter(v => v > 0).sort((x, y) => x - y);
@@ -1861,7 +1898,8 @@
       tipos.length > 1 ? linha('tipo', tipos.map(t => [t, String(t).replace(/^TIPO /i, 'Tipo ') + arTipo(t), u => u.tipo === t])) : '',
       cats.length > 1 ? linha('cat', cats.map(c => [c, catNomeDe(det, c), u => u.cat === c])) : '',
       vistas.length ? linha('vista', vistas.map(v => [v.id, v.label, u => u.vista === v.id])) : '',
-      vagas.length > 1 ? linha('vaga', vagas.map(v => [v, v, u => vagaRot(u.vg) === v])) : ''
+      vagas.length > 1 ? linha('vaga', vagas.map(v => [v, v, u => vagaRot(u.vg) === v])) : '',
+      U.some(u => u.mob) && U.some(u => !u.mob) ? linha('mob', [['1', 'Mobiliado', u => u.mob]], true) : ''
     ].filter(Boolean);
     const extras = linhas.slice(2), abertos = S.ui.efMais || efAtivos(f).some(k => !['tb', 'fx', 'final'].includes(k));
     const ativos = efAtivos(f);
@@ -1983,7 +2021,7 @@
     if(precos.length) h += '<div class="un-precos">' + precos.map(x => '<div><span>' + esc(x.l) + '</span><b class="num">' + esc(BRL(x.v)) + '</b></div>').join('') + (base && ar ? '<div><span>Por m²</span><b class="num">' + esc(BRL(base / ar)) + '</b></div>' : '') + '</div>';
     else if(a[6] === 'disponivel') h += '<p class="aviso fino">' + esc(det.dados.sem_tabela || 'Unidade sem preço na tabela. Confirme o valor com a construtora.') + '</p>';
     const fatos = [['Andar', andarTxt(a[4])], ['Tipologia', tl], ['Área', ar ? fmtM2(ar) : ''], ['Planta', a[1] ? String(a[1]).replace(/^TIPO /i, 'Tipo ') : ''], ['Enquadramento', a[3] ? catNomeDe(det, a[3]) : ''],
-      ['Vaga', vg != null ? vagaRot(vg) : ''], ['Final', fin != null ? String(fin).padStart(2, '0') : ''], ['Vista', vi ? vi.label : ''], ['Mobiliado', ex.mob ? 'Sim' : ''], ['PCD', ex.pcd ? 'Adaptável' : '']].filter(x => x[1]);
+      ['Vaga', vg != null ? vagaRot(vg) : ''], ['Final', fin != null ? String(fin).padStart(2, '0') : ''], ['Vista', vi ? vi.label : ''], ['Mobiliado', ex.mob || mobProj(det) ? 'Sim' : ''], ['PCD', ex.pcd ? 'Adaptável' : '']].filter(x => x[1]);
     h += '<dl class="un-fatos">' + fatos.map(x => '<div><dt>' + esc(x[0]) + '</dt><dd>' + esc(x[1]) + '</dd></div>').join('') + '</dl>';
     const pl = plantaDaUnidade(det, c, a), ad = andarDaUnidade(det, c, a), vs = vistaDaUnidade(det, c, a);
     const luz = [];
@@ -1995,7 +2033,8 @@
     if(mid) h += '<div class="un-midia">' + mid + '</div>';
     else if(c === undefined) h += '<div class="brilho" style="height:180px;border-radius:14px"></div>';
     const fx = fluxoHtml(det, a);
-    if(fx) h += '<details class="un-fluxo"' + (ehToque() ? '' : ' open') + '><summary>Como o cliente paga</summary>' + fx + '</details>';
+    if(fx) h += '<details class="un-fluxo"' + (ehToque() && !persDe(p.id, n) ? '' : ' open') + '><summary>Como o cliente paga' + (fx && persDe(p.id, n) ? '<small>pela tabela</small>' : '') + '</summary>' + fx + '</details>';
+    h += persSecaoHtml(p, det, a);
     if(c && c.aviso_planta && pl) h += '<p class="nota">' + esc(c.aviso_planta) + '</p>';
     return h;
   }
@@ -2009,11 +2048,12 @@
     const p = S.byId.get(id), ch = S.det.get(id), det = ch && ch.v; if(!p || !det) return;
     const a = (det.dados.unidades || []).find(x => String(x[0]) === String(n)); if(!a) return;
     const c0 = S.centralV.has(id) ? S.centralV.get(id) : undefined;
-    abrirFolha('un', 'Unidade ' + n + (a[4] != null && a[4] !== '' ? ', ' + andarTxt(a[4]) : ''), unidadeCorpoHtml(p, det, c0, a), unidadePeHtml(p, a), 'folha-un');
-    const dlg = $('#folha-un'); if(dlg) dlg.dataset.n = String(n);
+    if(S.fe && !feAberto(id, n)) S.fe = null;   // rascunho de outra unidade não vale aqui
+    abrirFolha('un', 'Unidade ' + n + (a[4] != null && a[4] !== '' ? ', ' + andarTxt(a[4]) : ''), '', unidadePeHtml(p, a), 'folha-un');
+    const dlg = $('#folha-un'); if(dlg){ dlg.dataset.n = String(n); dlg.dataset.pid = id; corpoFolha(unidadeCorpoHtml(p, det, c0, a), null, dlg); if(S.fe) feTotais(); }
     if(c0 === undefined){
       const c = await fichaCentral(id).catch(() => null);
-      const d2 = $('#folha-un'); if(d2 && d2.isConnected && d2.dataset.n === String(n)) corpoFolha(unidadeCorpoHtml(p, det, c, a), null, d2);
+      const d2 = $('#folha-un'); if(d2 && d2.isConnected && d2.dataset.n === String(n)){ const cp = $('.folha-corpo', d2), y = cp.scrollTop; corpoFolha(unidadeCorpoHtml(p, det, c, a), null, d2); cp.scrollTop = y; if(S.fe) feTotais(); }
     }
   }
   function marcarUnidade(id, n){
@@ -2309,6 +2349,310 @@
     setTimeout(() => { const i = $('#env-cli'); if(i && !ehToque()) i.focus(); }, 80);
   }
 
+  // ================= FLUXO PERSONALIZADO DA UNIDADE (o mesmo editor e o mesmo lugar dos Espelhos) =================
+  // Guardado neste aparelho em 'nex-fluxos', por projeto|unidade: {linhas: [{q, nome, valor, quando}], em, auto, alvo}.
+  // É a mesma chave da central dos Espelhos (mesmo site): o fluxo montado num app aparece no outro.
+  const K_PERS = 'nex-fluxos', MAX_LINHAS = 8;
+  ICO.lapis = svg('<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M14 6l4 4"/>');
+  const quandoMontado = ms => { const t = quandoTxt(ms); return /^\d\d:\d\d$/.test(t) ? 'hoje às ' + t : /^ontem /.test(t) ? t.replace('ontem ', 'ontem às ') : t.replace(/^(\S+) /, 'em $1 às '); };
+  function persTodos(){ try{ const o = JSON.parse(LS.get(K_PERS) || '{}'); return o && typeof o === 'object' && !Array.isArray(o) ? o : {}; }catch(e){ return {}; } }
+  const persKey = (pid, n) => pid + '|' + n;
+  function persDe(pid, n){ const pz = persTodos()[persKey(pid, String(n))]; return pz && Array.isArray(pz.linhas) && pz.linhas.length ? pz : null; }
+  function persGravar(pid, n, pz){
+    const o = persTodos(), k = persKey(pid, String(n));
+    if(pz) o[k] = pz; else delete o[k];
+    Object.keys(o).sort((x, y) => String((o[y] || {}).em || '').localeCompare(String((o[x] || {}).em || ''))).slice(80).forEach(z => { delete o[z]; });
+    return LS.set(K_PERS, JSON.stringify(o));
+  }
+  const persDoProjeto = pid => Object.keys(persTodos()).filter(k => k.startsWith(pid + '|')).map(k => k.slice(pid.length + 1));
+
+  // ---------- números ----------
+  const temCent = v => Math.abs(v - Math.round(v)) >= 0.005;
+  const BRL2 = v => 'R$ ' + (+v).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  const fmtV = v => temCent(v) ? BRL2(v) : BRL(v);
+  const numTxt = v => v == null || !isFinite(v) ? '' : (+v).toLocaleString('pt-BR', {minimumFractionDigits: temCent(v) ? 2 : 0, maximumFractionDigits: 2});
+  function numBR(s){   // "12.019,42", "R$ 300.483", "1502.41" e "12 mil" viram número
+    let t = String(s == null ? '' : s).toLowerCase().replace(/r\$|\s/g, '');
+    if(!t) return null;
+    const mil = /mil$|k$/.test(t); t = t.replace(/mil$|k$/, '');
+    if(/,\d{1,2}$/.test(t)) t = t.replace(/\./g, '').replace(',', '.');
+    else if(!/^\d+\.\d{1,2}$/.test(t)) t = t.replace(/[.,]/g, '');
+    let n = parseFloat(t); if(!isFinite(n)) return null;
+    if(mil) n *= 1000;
+    return Math.round(n * 100) / 100;
+  }
+  const tituloLinha = l => ((+l.q || 1) > 1 ? (+l.q) + ' ' : '') + String(l.nome || '').trim();
+  const linhasDe = ls => ls.map(l => ({t: tituloLinha(l).slice(0, 60), v: fmtV(+l.valor || 0), s: String(l.quando || '').trim().slice(0, 80)}));
+  const totalDe = ls => Math.round(ls.reduce((s, l) => s + (+l.q || 1) * (+l.valor || 0), 0) * 100) / 100;
+  const ehFin = l => /financ|repasse/i.test(String(l.nome || ''));
+  // linha que "fecha a conta": o financiamento (ou chaves, saldo); sem ele, a última parcela única
+  function linhaFechamento(ls){
+    for(let i = ls.length - 1; i >= 0; i--) if(/financ|chaves|saldo|repasse/i.test(ls[i].nome)) return i;
+    for(let i = ls.length - 1; i >= 0; i--) if((+ls[i].q || 1) === 1) return i;
+    return ls.length - 1;
+  }
+  function fecharConta(ls, alvo){   // muda só a linha de fechamento; resto <= 0: as outras parcelas já passam do alvo
+    const i = linhaFechamento(ls), l = ls[i], q = +l.q || 1;
+    const resto = Math.round((alvo - (totalDe(ls) - q * (+l.valor || 0))) * 100) / 100;
+    l.valor = resto > 0 ? Math.round(resto / q * 100) / 100 : 0;
+    return {i, resto, alvo};
+  }
+  function infoFin(ls, total){
+    let i = -1; for(let j = ls.length - 1; j >= 0; j--) if(ehFin(ls[j])){ i = j; break; }
+    if(i < 0 || !(total > 0)) return null;
+    const v = Math.round((+ls[i].q || 1) * (+ls[i].valor || 0) * 100) / 100;
+    return {v, pct: Math.round(v / total * 1000) / 10};
+  }
+  const proxMes = () => { const d = new Date(); d.setMonth(d.getMonth() + 1, 1); return MES3[d.getMonth()] + '/' + d.getFullYear(); };
+  const NOME_FLUXO = {ato: 'Ato', sinal: 'Sinal', parc: 'parcelas', mensal: 'mensais', semestral: 'semestrais', anual: 'anuais', inter: 'intermediárias', unica: 'Parcela única', chaves: 'Chaves', fin: 'Financiamento bancário'};
+  // o fluxo da tabela da unidade em linhas editáveis; sem fluxo, uma linha com o preço
+  function linhasDaTabela(det, a){
+    const fx = fluxoDe(det, a);
+    if(fx && fx.linhas && fx.linhas.length){
+      const ls = fx.linhas.map(l => {
+        const q = l.n || 1, base = l.rot ? String(l.rot) : (NOME_FLUXO[l.t] || 'Parcela');
+        return {q, nome: q > 1 ? base.charAt(0).toLowerCase() + base.slice(1) : base, valor: Math.round(l.v * 100) / 100,
+          quando: l.d ? (q > 1 ? 'a partir de ' : 'em ') + mesAnoCurto(l.d) : (l.fin ? 'na entrega das chaves' : '')};
+      });
+      return {ls, total: totalDe(ls), fluxo: true};
+    }
+    const v = precoU(a, chaveBase(det)) || precoU(a, 'pv') || 0;
+    return {ls: [{q: 1, nome: 'À vista', valor: v, quando: 'no fechamento'}], total: v, fluxo: false};
+  }
+
+  // ---------- o que vai para o cliente (mesmo formato do link da central dos Espelhos) ----------
+  const NOTA_VALOR = 'Valor na data do envio, sujeito a alteração e à disponibilidade da unidade.';
+  const corta = (s, n) => { s = String(s || '').trim(); if(s.length <= n) return s; const c = s.slice(0, n); const p = c.lastIndexOf('. '); return (p > 80 ? c.slice(0, p + 1) : c.slice(0, n - 1) + '…').trim(); };
+  function valoresPers(pz){
+    const dia = new Date().toLocaleDateString('pt-BR', {timeZone: 'America/Sao_Paulo'});
+    return {base: 'personalizado', rotulo: 'Condição personalizada', total: totalDe(pz.linhas), linhas: linhasDe(pz.linhas).slice(0, MAX_LINHAS),
+      nota: 'Condição personalizada preparada em ' + dia + ', sujeita à aprovação da construtora e à disponibilidade da unidade.'};
+  }
+  function valoresTabela(det, a, modo){
+    const tab = det.dados.tabela || {}, corr = (det.info && det.info.fluxo && det.info.fluxo.correcao) || tab.correcao || '';
+    const nota = corta([tab.regra_curta, corr].filter(Boolean).join(' ') || NOTA_VALOR, 400), rot = tab.nome ? nomeTabela(tab.nome) : '';
+    const tb = linhasDaTabela(det, a);
+    if(tb.fluxo && (!modo || modo === chaveBase(det))) return {base: 'tabela', rotulo: rot || 'Tabela de vendas', total: Math.round(tb.total), linhas: linhasDe(tb.ls).slice(0, MAX_LINHAS), nota};
+    const pc = precosCampos(det), k = modo && precoU(a, modo) ? modo : chaveBase(det), v = precoU(a, k);
+    if(!v) return null;
+    const lab = (pc.find(x => x.k === k) || {}).label || 'Valor';
+    return {base: k, rotulo: rot, total: v, linhas: [{t: lab, v: BRL(v), s: ''}], nota};
+  }
+  // a condição montada numa unidade aplicada a outra: mesma entrada e parcelas, o financiamento fecha no valor dela
+  function persDerivado(det, a, pz){
+    const tb = linhasDaTabela(det, a); if(!(tb.total > 0)) return null;
+    const ls = pz.linhas.map(l => Object.assign({}, l)), r = fecharConta(ls, tb.total);
+    return r.resto > 0 ? {linhas: ls, em: pz.em} : null;
+  }
+  // valores de cada unidade do envio: o fluxo dela, o derivado da primeira personalizada ou a tabela
+  function valoresDoEnvio(det, pid, ns, formato, modo){
+    const porN = new Map((det.dados.unidades || []).map(a => [String(a[0]), a]));
+    const fonte = formato === 'pers' ? ns.map(n => persDe(pid, n)).find(Boolean) : null, pelaTabela = [];
+    const out = ns.map(n => {
+      const a = porN.get(String(n)); if(!a) return {n};
+      if(formato === 'pers'){
+        const pz = persDe(pid, n) || (fonte ? persDerivado(det, a, fonte) : null);
+        if(pz) return {n, valores: valoresPers(pz)};
+        pelaTabela.push(n);
+      }
+      return {n, valores: valoresTabela(det, a, modo)};
+    });
+    return {itens: out, pelaTabela};
+  }
+
+  // ---------- na folha da unidade ----------
+  function persResumoHtml(p, det, a){
+    if(a[6] !== 'disponivel') return '';
+    const n = String(a[0]), pz = persDe(p.id, n);
+    if(!pz) return '<div class="pers-cta"><p><b>Fluxo personalizado</b><span>Monte a condição do cliente (ato, mensais, financiamento). Ela vai junto quando você tocar em Mandar.</span></p>' +
+      '<button type="button" class="btn btn-peq" data-fe="abrir">' + ICO.lapis + 'Montar fluxo</button></div>';
+    const tot = totalDe(pz.linhas), tb = linhasDaTabela(det, a), d = tb.total > 0 ? Math.round((tot - tb.total) * 100) / 100 : 0;
+    const dif = tb.total > 0 && Math.abs(d) >= 1 ? fmtV(Math.abs(d)) + (d < 0 ? ' abaixo' : ' acima') + ' da tabela (' + (d < 0 ? '−' : '+') + pctTxt(Math.round(Math.abs(d) / tb.total * 1000) / 10) + ')' : tb.total > 0 ? 'No valor da tabela' : '';
+    const inf = infoFin(pz.linhas, tot);
+    return '<section class="pers-box" aria-labelledby="pers-t"><div class="pers-cab"><h3 id="pers-t">Fluxo personalizado</h3><span class="pers-acoes">' +
+      '<button type="button" class="link-mais" data-fe="copiar">' + ICO.copiar + 'Copiar</button><button type="button" class="link-mais" data-fe="abrir">' + ICO.lapis + 'Editar</button></span></div>' +
+      '<div class="pers-ls">' + linhasDe(pz.linhas).map(l => '<div class="ln"><span>' + esc(l.t) + (l.s ? '<small>' + esc(l.s) + '</small>' : '') + '</span><b class="num">' + esc(l.v) + '</b></div>').join('') +
+      '<div class="ln tot"><span>Valor total' + (dif ? '<small' + (d > 0 ? ' class="acima"' : '') + '>' + esc(dif) + '</small>' : '') + '</span><b class="num">' + esc(fmtV(tot)) + '</b></div></div>' +
+      (inf ? '<p class="nota">Financiamento de ' + esc(fmtV(inf.v)) + ', ' + esc(pctTxt(inf.pct)) + ' do valor.</p>' : '') +
+      '<div class="pers-info"><span>Montado ' + esc(quandoMontado(Date.parse(pz.em) || Date.now())) + ' neste aparelho. É este fluxo que vai no Mandar.</span><button type="button" class="link-mais" data-fe="descartar">Descartar</button></div></section>';
+  }
+  const MODELOS = [
+    {rot: 'Ato', q: 1, nome: 'Ato', quando: 'no fechamento'},
+    {rot: 'Mensais', q: 12, nome: 'mensais', quando: () => 'a partir de ' + proxMes()},
+    {rot: 'Anuais', q: 2, nome: 'anuais', quando: ''},
+    {rot: 'Parcela única', q: 1, nome: 'Parcela única', quando: ''},
+    {rot: 'Financiamento', q: 1, nome: 'Financiamento bancário', quando: 'na entrega das chaves'},
+    {rot: 'Outra', q: 1, nome: 'Parcela', quando: ''}
+  ];
+  function feRecalc(){
+    const e = S.fe; if(!e || !e.auto || !e.linhas.length) return null;
+    const alvo = numBR(e.alvo) || e.ref; if(!(alvo > 0)) return null;
+    return fecharConta(e.linhas, alvo);
+  }
+  function feEditorHtml(){
+    const e = S.fe, fc = feRecalc(), ls = e.linhas, cheio = ls.length >= MAX_LINHAS;
+    e.fechaIdx = fc ? fc.i : -1;
+    const lf = ls[linhaFechamento(ls)] || {}, onde = ehFin(lf) ? 'no financiamento' : 'em “' + tituloLinha(lf) + '”';
+    return '<section class="pers-box editor" aria-labelledby="fe-t"><div class="pers-cab"><h3 id="fe-t">Montar fluxo personalizado</h3><span class="pers-acoes"><button type="button" class="link-mais" data-fe="restaurar">Voltar ao da tabela</button></span></div>' +
+      '<p class="fe-dica">' + esc(fc ? 'Digite o que o cliente paga (ato, mensais, anuais). A linha destacada fecha a conta sozinha' + (e.ref ? ', no valor da tabela ou no total negociado.' : ', no total negociado.')
+        : 'Mude a quantidade, o valor e a data de cada parcela, inclua ou tire linhas. O total soma sozinho e o cliente recebe exatamente este fluxo.') + '</p>' +
+      '<div class="fe">' + ls.map((l, i) => {
+        const fecha = fc && i === fc.i;
+        return '<div class="fe-ln' + (fecha ? ' fecha' : '') + '" data-i="' + i + '">' +
+          '<label class="fe-q"><span>Qtd.</span><input type="number" inputmode="numeric" min="1" max="480" step="1" value="' + (+l.q || 1) + '" data-fe-in="q"></label>' +
+          '<label class="fe-n"><span>Parcela</span><input maxlength="40" autocomplete="off" value="' + esc(l.nome) + '" data-fe-in="nome"></label>' +
+          '<button type="button" class="fe-x" data-fe="tirar" data-i="' + i + '" aria-label="Tirar a linha ' + esc(tituloLinha(l)) + '"' + (ls.length < 2 ? ' disabled' : '') + '>' + ICO.x + '</button>' +
+          '<div class="fe-vs"><label class="fe-v"><span>' + (fecha ? 'Fecha a conta' : 'Valor de cada') + '</span><input inputmode="decimal" autocomplete="off" value="' + esc(numTxt(+l.valor || 0)) + '" data-fe-in="valor"' + (fecha ? ' readonly tabindex="-1" aria-label="Valor calculado para fechar a conta"' : '') + '></label>' +
+          '<label class="fe-s"><span>Quando</span><input maxlength="60" autocomplete="off" value="' + esc(l.quando || '') + '" placeholder="ex.: a partir de ' + esc(proxMes()) + '" data-fe-in="quando"></label></div>' +
+          '<small class="fe-sub"></small></div>';
+      }).join('') + '</div>' +
+      '<div class="fe-add"><span>' + (cheio ? 'Máximo de ' + MAX_LINHAS + ' linhas' : 'Incluir') + '</span>' + MODELOS.map((m, i) => '<button type="button" class="pilula peq" data-fe="add" data-i="' + i + '"' + (cheio ? ' disabled' : '') + '>+ ' + esc(m.rot) + '</button>').join('') + '</div>' +
+      '<label class="fe-auto"><input type="checkbox" data-fe-in="auto"' + (e.auto ? ' checked' : '') + '><span>Fechar a conta sozinho ' + esc(onde) + '</span></label>' +
+      '<div class="fe-tot"><span>Total do fluxo</span><b class="num" id="fe-total">—</b><small id="fe-dif"></small><small id="fe-fin"></small></div>' +
+      '<div class="fe-neg"><label class="campo"><span>' + (e.auto ? 'Total negociado (opcional)' : 'Fechar o total em') + '</span><input inputmode="decimal" autocomplete="off" value="' + esc(e.alvo || '') + '" placeholder="' + esc(e.auto && e.ref ? 'em branco: o valor da tabela' : 'ex.: 295.000') + '" data-fe-in="alvo"></label>' +
+      (e.auto ? '' : '<button type="button" class="btn btn-peq" data-fe="ajustar">Ajustar ' + esc(onde) + '</button>') + '</div>' +
+      '<p class="erro-txt" id="fe-erro" role="alert">' + esc(e.erro || '') + '</p>' +
+      '<div class="fe-bts"><button type="button" class="btn" data-fe="cancelar">Cancelar</button><button type="button" class="btn btn-pri" data-fe="salvar">' + ICO.ok + 'Salvar fluxo</button></div></section>';
+  }
+  function feTotais(){
+    const e = S.fe, box = $('#fe-box'); if(!e || !box) return;
+    const fc = feRecalc(), tot = totalDe(e.linhas);
+    const el = $('#fe-total', box); if(el) el.textContent = fmtV(tot);
+    if(fc){ const inp = $('.fe-ln[data-i="' + fc.i + '"] [data-fe-in="valor"]', box); if(inp && document.activeElement !== inp) inp.value = numTxt(+e.linhas[fc.i].valor || 0); }
+    const dif = $('#fe-dif', box), neg = fc && numBR(e.alvo);
+    if(dif){
+      if(e.ref){
+        const d = Math.round((tot - e.ref) * 100) / 100, pc = pctTxt(Math.round(Math.abs(d) / e.ref * 1000) / 10);
+        dif.textContent = Math.abs(d) < 1 ? (fc ? 'Fecha no valor da tabela' : 'Igual ao valor da tabela') : fmtV(Math.abs(d)) + (d < 0 ? ' abaixo' : ' acima') + ' da tabela (' + (d < 0 ? '−' : '+') + pc + ')' + (neg ? ', total negociado' : '');
+        dif.className = Math.abs(d) < 1 ? 'ok' : d < 0 ? 'abaixo' : 'acima';
+      }else{ dif.textContent = ''; dif.className = ''; }
+    }
+    const fin = $('#fe-fin', box), inf = infoFin(e.linhas, tot);
+    if(fin){
+      if(fc && fc.resto <= 0){ fin.textContent = 'As outras parcelas já passam de ' + fmtV(fc.alvo) + '. Diminua alguma delas.'; fin.className = 'erro'; }
+      else if(inf){ const acima = e.limite != null && inf.pct > e.limite + 0.05; fin.textContent = 'Financiamento de ' + fmtV(inf.v) + ', ' + pctTxt(inf.pct) + ' do valor' + (acima ? '. Acima dos ' + pctTxt(e.limite) + ' da tabela: confirme com o banco e a construtora.' : '.'); fin.className = acima ? 'alerta' : ''; }
+      else{ fin.textContent = ''; fin.className = ''; }
+    }
+    $$('.fe-ln', box).forEach(r => { const l = e.linhas[+r.dataset.i], s = r.querySelector('.fe-sub'); if(!l || !s) return; const q = +l.q || 1; s.textContent = q > 1 && l.valor ? q + ' × ' + fmtV(+l.valor) + ' = ' + fmtV(q * l.valor) : ''; });
+  }
+  function feValidar(){
+    const e = S.fe, ls = e.linhas;
+    if(!ls.length) return 'Inclua pelo menos uma parcela.';
+    const fc = feRecalc(); if(fc && fc.resto <= 0) return 'As outras parcelas já passam de ' + fmtV(fc.alvo) + '. Diminua alguma delas.';
+    for(const l of ls){
+      if(!String(l.nome || '').trim()) return 'Dê um nome a cada parcela (ex.: Ato, mensais, Financiamento).';
+      if(!(+l.q >= 1 && +l.q <= 480 && Number.isInteger(+l.q))) return 'A quantidade de "' + tituloLinha(l) + '" precisa ser um número inteiro de 1 a 480.';
+      if(!(+l.valor > 0)) return 'Falta o valor de "' + tituloLinha(l) + '".';
+    }
+    return '';
+  }
+  const feErro = m => { if(S.fe) S.fe.erro = m; const b = $('#fe-erro'); if(b) b.textContent = m; };
+  function feSalvar(silencioso){
+    const e = S.fe; if(!e) return true;
+    const er = feValidar(); if(er){ feErro(er); const b = $('#fe-erro'); if(b) b.scrollIntoView({block: 'center', behavior: menosMov() ? 'auto' : 'smooth'}); return false; }
+    const pz = {linhas: e.linhas.map(l => ({q: +l.q || 1, nome: String(l.nome).trim(), valor: Math.round((+l.valor) * 100) / 100, quando: String(l.quando || '').trim()})),
+      em: new Date().toISOString(), auto: !!e.auto, alvo: e.auto ? (numBR(e.alvo) || null) : null};
+    if(!persGravar(e.pid, e.n, pz)){ feErro('Não consegui guardar neste aparelho. Confira se o navegador não está em modo privado.'); return false; }
+    S.fe = null;
+    if(!silencioso){ feRedesenhar(); toast('Fluxo salvo. Toque em Mandar para enviar ao cliente com ele.', 4200); }
+    return true;
+  }
+  function feUnidade(){   // projeto, espelho e unidade da folha aberta
+    const d = $('#folha-un'); if(!d || !d.isConnected) return null;
+    const pid = d.dataset.pid, n = d.dataset.n, ch = S.det.get(pid), det = ch && ch.v, p = S.byId.get(pid);
+    const a = det && (det.dados.unidades || []).find(x => String(x[0]) === String(n));
+    return a && p ? {d, pid, n: String(n), det, p, a} : null;
+  }
+  function feAbrir(){
+    const u = feUnidade(); if(!u) return;
+    const tb = linhasDaTabela(u.det, u.a), pz = persDe(u.pid, u.n), lim = tb.fluxo ? infoFin(tb.ls, tb.total) : null;
+    let alvo = '';
+    if(pz && pz.alvo) alvo = numTxt(pz.alvo);
+    else if(pz && pz.auto === undefined && tb.total && Math.abs(totalDe(pz.linhas) - tb.total) >= 1) alvo = numTxt(totalDe(pz.linhas));
+    S.fe = {pid: u.pid, n: u.n, linhas: (pz ? pz.linhas : tb.ls).slice(0, MAX_LINHAS).map(l => Object.assign({}, l)), ref: tb.total > 0 ? tb.total : null,
+      alvo, auto: pz ? pz.auto !== false : true, limite: lim ? lim.pct : null, fechaIdx: -1, erro: ''};
+    feRedesenhar(true);
+  }
+  const feAberto = (pid, n) => !!(S.fe && S.fe.pid === pid && S.fe.n === String(n));
+  function persSecaoHtml(p, det, a){
+    return '<div id="un-pers" class="un-pers">' + (feAberto(p.id, a[0]) ? '<div id="fe-box">' + feEditorHtml() + '</div>' : persResumoHtml(p, det, a)) + '</div>';
+  }
+  function feRedesenhar(rolar, foco){
+    const u = feUnidade(); if(!u) return;
+    const box = $('#un-pers', u.d); if(!box) return;
+    const corpo = $('.folha-corpo', u.d), y = corpo.scrollTop;
+    box.outerHTML = persSecaoHtml(u.p, u.det, u.a);
+    if(S.fe) feTotais();
+    corpo.scrollTop = y;
+    if(foco){ const i = $(foco, u.d); if(i) i.focus({preventScroll: false}); }
+    if(rolar) requestAnimationFrame(() => { const b = $('#un-pers', u.d); if(b) b.scrollIntoView({block: 'start', behavior: menosMov() ? 'auto' : 'smooth'}); });
+  }
+  // "Mandar" com o editor aberto: salva antes (se faltar algo, mostra o erro e não manda)
+  function feAntesDeMandar(pid, n){ return !feAberto(pid, n) || feSalvar(true); }
+  function textoPers(p, det, a, pz){
+    const ls = linhasDe(pz.linhas), tot = totalDe(pz.linhas);
+    return p.nome + ', unidade ' + a[0] + '\n' + maiusc1([andarTxt(a[4]), tipologiaU(det, a), areaU(a) ? fmtM2(areaU(a)) : ''].filter(Boolean).join(', ')) + '\n\nCondição personalizada:\n' +
+      ls.map(l => '• ' + l.t + ': ' + l.v + (l.s ? ' (' + l.s + ')' : '')).join('\n') + (ls.length > 1 ? '\nValor total: ' + fmtV(tot) : '');
+  }
+
+  document.addEventListener('click', ev => {
+    const b = ev.target.closest('[data-fe]'); if(!b) return;
+    const u = feUnidade(); if(!u) return;
+    const acao = b.dataset.fe;
+    if(acao === 'abrir') return feAbrir();
+    if(acao === 'copiar'){ const pz = persDe(u.pid, u.n); if(pz) copiar(textoPers(u.p, u.det, u.a, pz), 'Fluxo copiado. Cole na conversa com o cliente.'); return; }
+    if(acao === 'descartar'){   // dois toques, sem janela do navegador
+      if(b.dataset.certo !== '1'){ b.dataset.certo = '1'; b.textContent = 'Toque de novo para descartar'; setTimeout(() => { if(b.isConnected){ b.dataset.certo = ''; b.textContent = 'Descartar'; } }, 4000); return; }
+      persGravar(u.pid, u.n, null); feRedesenhar(); toast('Fluxo personalizado descartado.'); return;
+    }
+    const e = S.fe; if(!e || !feAberto(u.pid, u.n)) return;
+    if(acao === 'add'){
+      if(e.linhas.length >= MAX_LINHAS) return;
+      const m = MODELOS[+b.dataset.i]; if(!m) return;
+      const nova = {q: m.q, nome: m.nome, valor: 0, quando: typeof m.quando === 'function' ? m.quando() : m.quando};
+      const fin = e.linhas.findIndex(l => /financ|chaves|saldo|repasse/i.test(l.nome));
+      const pos = /financ/i.test(m.nome) || fin < 0 ? e.linhas.length : (/^ato$/i.test(m.nome) ? 0 : fin);
+      e.linhas.splice(pos, 0, nova);
+      feRedesenhar(false, '.fe-ln[data-i="' + pos + '"] [data-fe-in="valor"]:not([readonly])');
+      return;
+    }
+    if(acao === 'tirar'){ if(e.linhas.length > 1){ e.linhas.splice(+b.dataset.i, 1); feRedesenhar(); } return; }
+    if(acao === 'restaurar'){ e.linhas = linhasDaTabela(u.det, u.a).ls.slice(0, MAX_LINHAS); e.alvo = ''; e.erro = ''; feRedesenhar(); return; }
+    if(acao === 'ajustar'){
+      const alvo = numBR(e.alvo);
+      if(!alvo || alvo <= 0){ feErro('Digite o total que quer fechar (ex.: 295.000).'); return; }
+      const i = linhaFechamento(e.linhas), l = e.linhas[i], q = +l.q || 1, resto = alvo - (totalDe(e.linhas) - q * (+l.valor || 0));
+      if(resto <= 0){ feErro('Com as outras parcelas já passa de ' + fmtV(alvo) + '. Diminua alguma delas antes.'); return; }
+      l.valor = Math.round(resto / q * 100) / 100; e.erro = ''; feRedesenhar();
+      if(Math.abs(totalDe(e.linhas) - alvo) >= 0.01) toast('Arredondei os centavos: o total ficou ' + fmtV(totalDe(e.linhas)) + '.');
+      return;
+    }
+    if(acao === 'cancelar'){ S.fe = null; feRedesenhar(); return; }
+    if(acao === 'salvar') feSalvar();
+  });
+  document.addEventListener('input', ev => {
+    const t = ev.target, k = t && t.dataset && t.dataset.feIn; if(!k || !S.fe || k === 'auto') return;
+    const e = S.fe;
+    if(k === 'alvo'){ e.alvo = t.value; feTotais(); return; }
+    const r = t.closest('.fe-ln'), l = r && e.linhas[+r.dataset.i]; if(!l) return;
+    if(k === 'q'){ const q = parseInt(t.value, 10); l.q = isFinite(q) && q > 0 ? Math.min(q, 480) : 1; }
+    else if(k === 'nome') l.nome = t.value;
+    else if(k === 'valor') l.valor = numBR(t.value) || 0;
+    else if(k === 'quando') l.quando = t.value;
+    if(e.erro){ e.erro = ''; const er = $('#fe-erro'); if(er) er.textContent = ''; }
+    feTotais();
+  });
+  document.addEventListener('change', ev => {
+    const t = ev.target, k = t && t.dataset && t.dataset.feIn; if(!k || !S.fe) return;
+    if(k === 'auto'){ S.fe.auto = t.checked; feRedesenhar(); return; }
+    // o nome define qual linha fecha a conta (ex.: "Financiamento"): redesenha se ela mudou
+    if(k === 'nome' && S.fe.auto && linhaFechamento(S.fe.linhas) !== S.fe.fechaIdx) feRedesenhar();
+  });
+  document.addEventListener('focusout', ev => {   // ao sair do valor, mostra o número formatado (1502,4 vira 1.502,40)
+    const t = ev.target; if(!t || !t.dataset || t.dataset.feIn !== 'valor' || !S.fe) return;
+    const r = t.closest('.fe-ln'), l = r && S.fe.linhas[+r.dataset.i]; if(l && t.value.trim()) t.value = numTxt(+l.valor || 0);
+  });
+
   // ================= PERFIL =================
   function telaPerfil(){
     const pf = perfil(), tema = LS.get(K.tema) || 'escuro';
@@ -2466,13 +2810,13 @@
     corpoFolha(menuBaixarHtml(p, det, c), '', dlg);
   }
   function menuBaixarHtml(p, det, c){
-    const fotos = fotosDoProjeto(det, c), plantas = plantasDoProjeto(det, c);
+    const fotos = fotosDoProjeto(det, c), plantas = plantasDoProjeto(det, c), bk = bookDe(det, c);
     const livres = (det.dados.unidades || []).filter(a => a[6] === 'disponivel').length;
     const sel = S.ui.tabSel.get(p.id);
     const nU = sel && sel.size ? plural(sel.size, 'unidade marcada', 'unidades marcadas') : plural(livres, 'unidade livre', 'unidades livres');
     const op = (acao, ico, t, s) => '<button type="button" class="opcao" data-acao="' + acao + '" data-id="' + esc(p.id) + '"><span class="opcao-ico" aria-hidden="true">' + ico + '</span><span class="opcao-t"><b>' + esc(t) + '</b><small>' + esc(s) + '</small></span>' + ICO.seta + '</button>';
     return '<div class="env-proj">' + miniProj(p) + '<p><b>' + esc(p.nome) + '</b><span>Fotos na melhor qualidade que a construtora publica. Os PDFs saem com o seu contato no rodapé.</span></p></div>' +
-      '<div class="opcoes">' +
+      '<div class="opcoes">' + (bk ? '<a class="opcao" href="' + esc(bk.u) + '" target="_blank" rel="noopener"' + (bk.mesmo ? ' download' : '') + '><span class="opcao-ico" aria-hidden="true">' + ICO.livro + '</span><span class="opcao-t"><b>' + esc(bk.arq ? 'Book do empreendimento (PDF)' : 'Pasta do book no Drive') + '</b><small>' + esc(bk.arq ? [/^book do empreendimento$/i.test(bk.t || '') ? '' : bk.t, bk.s].filter(Boolean).join(', ') : 'Abre a pasta com o book da construtora') + '</small></span>' + ICO.seta + '</a>' : '') +
       (fotos.length ? op('baixar-fotos', ICO.fotos, 'Fotos em alta (.zip)', plural(Math.min(MAX_ZIP, fotos.length), 'foto', 'fotos') + ' num arquivo só') : '') +
       (fotos.length && ehToque() && podeCompartilharArquivos() ? op('enviar-fotos', ICO.zap, 'Mandar fotos pelo WhatsApp', 'As ' + Math.min(10, fotos.length) + ' primeiras, direto no aplicativo') : '') +
       (plantas.length ? op('baixar-plantas', ICO.planta, 'Plantas (.zip)', plural(plantas.length, 'planta', 'plantas')) : '') +
@@ -2863,7 +3207,10 @@
         if(!s.has(el.dataset.n) && s.size >= 40){ toast('Até 40 unidades por link.'); break; }
         marcarUnidade(id, el.dataset.n); break;
       }
-      case 'un-mandar': { const s = S.ui.tabSel.get(id) || new Set(); s.add(el.dataset.n); S.ui.tabSel.set(id, s); fecharFolhas(); atualizarTabela(); abrirEnvio(id, true); break; }
+      case 'un-mandar': {
+        if(!feAntesDeMandar(id, el.dataset.n)){ toast('Confira o fluxo antes de mandar.'); break; }
+        const s = S.ui.tabSel.get(id) || new Set(); s.add(el.dataset.n); S.ui.tabSel.set(id, s); fecharFolhas(); atualizarTabela(); abrirEnvio(id, true); break;
+      }
       case 'luz-un': abrirLuz(S.unLuz || [], +el.dataset.i || 0, nomeDaRota()); break;
       // ---- comparar
       case 'cp-tipo': if(S.cp){ S.cp.tipo = v; S.cp.fora = new Set(); if(v === 'escolha' && !S.cp.esc[0].pid && S.cp.pid) S.cp.esc[0] = {pid: S.cp.pid, n: S.cp.n}; render(); } break;
@@ -2885,7 +3232,7 @@
       // ---- envio
       case 'enviar': ev.preventDefault(); abrirEnvio(id, el.dataset.sel === '1'); break;
       case 'env-modo': if(S.envio){ S.envio.modo = v; $$('[data-acao="env-modo"]').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === v)); } break;
-      case 'env-fmt': if(S.envio){ S.envio.formato = v; $$('[data-acao="env-fmt"]').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === v)); const n = $('#env-fmt-nota'); if(n) n.textContent = v === 'ficha' ? 'Fotos, plantas, lazer, mapa e até 4 unidades com valores.' : 'Uma página com as unidades marcadas, fotos e valores. Até 40 unidades.'; } break;
+      case 'env-fmt': if(S.envio){ S.envio.formato = v; $$('[data-acao="env-fmt"]').forEach(b => b.setAttribute('aria-checked', b.dataset.v === v)); const md = $('#env-modo-f'); if(md) md.hidden = v === 'pers'; } break;
       case 'env-criar': criarEnvio(); break;
       case 'env-copiar': { const m = $('#env-msg'); copiar(m ? m.value : (S.envioPronto || {}).msg, 'Mensagem com o link copiada.'); break; }
       case 'env-wa': { const m = $('#env-msg'); if(m) el.href = 'https://wa.me/?text=' + encodeURIComponent(m.value); break; }
