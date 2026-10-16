@@ -1,7 +1,7 @@
 /* Service worker do App do Corretor: abre sem internet e guarda as fotos das fichas. */
-const VERSAO = 'corretor-20261016a';
+const VERSAO = 'corretor-20261016b';
 const CASCA = [
-  './', 'index.html', 'app.css?v=20261016a', 'app.js?v=20261016a', 'manifest.webmanifest', 'fonts/mona-sans.woff2',
+  './', 'index.html', 'app.css?v=20261016b', 'app.js?v=20261016b', 'manifest.webmanifest', 'fonts/mona-sans.woff2',
   'img/logo-fortal.png', 'icons/icon-192.png', 'icons/maskable-512.png', 'icons/apple-touch-icon.png', 'icons/favicon-64.png'
 ];
 const FOTOS = 'corretor-fotos';

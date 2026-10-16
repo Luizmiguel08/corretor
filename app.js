@@ -10,11 +10,13 @@
   const LOCAL = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);   // teste local: espelho copiado em /espelhos/
   const ESP = (NO_AR || LOCAL) ? '/espelhos/' : 'https://luizmiguel08.github.io/espelhos/';
   const FN_FOTO = CFG.url + '/functions/v1/corretor-foto';
-  const VERSAO = '2.0 · 16/10/2026';
+  const VERSAO = '2.0.1 · 16/10/2026';
   const K = {cod: 'espelhos-codigo', cor: 'espelhos-corretor', dono: 'espelhos-dono', cache: 'corretor-resumo-v2', tema: 'corretor-tema', filtro: 'corretor-filtro-v2'};
   const TZ = 'America/Sao_Paulo';
   const MQ_LARGO = matchMedia('(min-width: 1024px)');
   const largo = () => MQ_LARGO.matches;
+  const MQ_TABELA = matchMedia('(min-width: 1320px)');   // tabela de 11 colunas do projeto: só com espaço para ela inteira
+  const tabelaLarga = () => MQ_TABELA.matches;
   const ehToque = () => matchMedia('(hover: none) and (pointer: coarse)').matches;
   const menosMov = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -431,6 +433,7 @@
   function depoisDeRender(){ const fs = pos.splice(0); fs.forEach(f => { try{ const r = f(); if(r && r.catch) r.catch(e => console.error(e)); }catch(e){ console.error(e); } }); }
   window.addEventListener('hashchange', () => { fecharFolhas(); render(); });
   MQ_LARGO.addEventListener('change', () => { if(S.carregado && S.cod && !document.querySelector('dialog[open]')) render(); });
+  MQ_TABELA.addEventListener('change', () => { if(/^#\/tabelas\//.test(location.hash)) atualizarTabela(); });
 
   // barra lateral do computador: aviso ao vivo e perfil
   function atualizarLateral(){
@@ -901,31 +904,32 @@
   function unidadesHtml(res){
     if(!S.U) return '<div class="esqueleto" aria-busy="true"><div class="brilho" style="height:52px"></div><div class="brilho" style="height:52px"></div><div class="brilho" style="height:52px"></div><p class="sub">' + (S.Uerro ? 'Não consegui abrir as unidades agora.' : 'Carregando as unidades livres…') + '</p></div>';
     const its = unidadesDaLista(res), f = S.f, lim = S.ui.unidMostra || 40;
+    // duas linhas por célula (principal em cima, apoio embaixo): cabe sem cortar coluna de 600 px para cima
+    const par = (a, b) => a ? '<span>' + esc(a) + '</span>' + (b ? '<small>' + esc(b) + '</small>' : '') : b ? '<span>' + esc(b) + '</span>' : '';
     const lin = x => {
       const k = x.p.id + '|' + x.u.n, mk = S.sel.has(k), m2 = x.pr > 0 && x.u.a ? x.pr / x.u.a : null;
-      const desc = [x.u.k ? tipoNome(x.u.k) : '', x.u.a ? fmtM2(x.u.a) : '', andarCurto(x.u.at) ? andarCurto(x.u.at) + (/^\d+$/.test(x.u.at || '') ? ' andar' : '') : '', vagaTxt(x.u.vg), x.u.c ? CAT_TXT[x.u.c] : ''].filter(Boolean).join(', ');
+      const tipo = x.u.k ? tipoNome(x.u.k) : '', area = x.u.a ? fmtM2(x.u.a) : '', cat = x.u.c ? CAT_TXT[x.u.c] : '';
+      const andar = andarCurto(x.u.at) ? andarCurto(x.u.at) + (/^\d+$/.test(x.u.at || '') ? ' andar' : '') : '', vaga = vagaTxt(x.u.vg);
+      const desc = [tipo, area, andar, vaga, cat].filter(Boolean).join(', ');
       return '<div class="tu-lin' + (mk ? ' marcada' : '') + '" role="row">' +
         '<span role="cell" class="tu-ck"><button type="button" class="ck-btn" data-acao="sel-u" data-p="' + esc(x.p.id) + '" data-n="' + esc(x.u.n) + '" aria-pressed="' + mk + '" aria-label="Marcar a unidade ' + esc(x.u.n) + ' do ' + esc(x.p.nome) + '"><span class="ck">' + ICO.ok + '</span></button></span>' +
-        '<a role="cell" class="tu-proj" href="#/p/' + esc(x.p.id) + '">' + miniProj(x.p, 'peq') + '<span><b>' + esc(x.p.nome) + '</b><small>' + esc([quemDe(x.p), x.p.bairro].filter(Boolean).join(', ')) + '</small></span></a>' +
-        '<span role="cell" class="tu-n num"><b>' + esc(x.u.n) + '</b><small class="so-estreito">' + esc(desc) + '</small></span>' +
-        '<span role="cell" class="tu-t so-largo">' + esc(x.u.k ? tipoNome(x.u.k) : '') + '</span>' +
-        '<span role="cell" class="tu-a so-largo num">' + esc(x.u.a ? fmtM2(x.u.a) : '') + '</span>' +
-        '<span role="cell" class="tu-an so-largo num">' + esc(andarCurto(x.u.at)) + '</span>' +
-        '<span role="cell" class="tu-vg so-largo">' + esc(vagaTxt(x.u.vg)) + '</span>' +
-        '<span role="cell" class="tu-c so-largo">' + esc(x.u.c ? CAT_TXT[x.u.c] : '') + '</span>' +
+        '<a role="cell" class="tu-proj" href="#/p/' + esc(x.p.id) + '" title="' + esc(x.p.nome) + '">' + miniProj(x.p, 'peq') + '<span><b>' + esc(x.p.nome) + '</b><small>' + esc([quemDe(x.p), x.p.bairro].filter(Boolean).join(', ')) + '</small></span></a>' +
+        '<span role="cell" class="tu-n num"><b>' + esc(x.u.n) + '</b><small class="tu-desc">' + esc(desc) + '</small>' + (cat ? '<small class="tu-cat">' + esc(cat) + '</small>' : '') + '</span>' +
+        '<span role="cell" class="tu-x">' + par(tipo, area) + '</span>' +
+        '<span role="cell" class="tu-x">' + par(andar, vaga) + '</span>' +
         '<span role="cell" class="tu-p num">' + (x.pr > 0 ? '<b>' + esc(BRL(x.pr)) + '</b>' : '<span class="apoio">sem preço</span>') + (m2 ? '<small>' + esc(BRL(m2)) + '/m²</small>' : '') + '</span>' +
-        '<span role="cell" class="tu-e so-largo">' + esc(entregaCurta(x.p)) + '</span></div>';
+        '<span role="cell" class="tu-x tu-e">' + esc(entregaCurta(x.p)) + '</span></div>';
     };
-    return '<div class="tab-unid" role="table" aria-label="Unidades livres no filtro">' +
-      '<div class="tu-lin cab so-largo" role="row"><span role="columnheader"></span><span role="columnheader">Projeto</span><span role="columnheader">Unidade</span><span role="columnheader">Tipologia</span><span role="columnheader">Área</span><span role="columnheader">Andar</span><span role="columnheader">Vaga</span><span role="columnheader">Faixa</span><span role="columnheader" class="dir">' + (f.modo === 'pv' ? 'À vista' : 'Preço') + '</span><span role="columnheader">Entrega</span></div>' +
-      its.slice(0, lim).map(lin).join('') + '</div>' +
+    return '<div class="tab-unid"><div class="tu-corpo" role="table" aria-label="Unidades livres no filtro">' +
+      '<div class="tu-lin cab" role="row"><span role="columnheader"><span class="sr">Marcar</span></span><span role="columnheader">Projeto</span><span role="columnheader">Unidade</span><span role="columnheader">Tipo e área</span><span role="columnheader">Andar e vaga</span><span role="columnheader" class="dir">' + (f.modo === 'pv' ? 'À vista' : 'Preço') + '</span><span role="columnheader">Entrega</span></div>' +
+      its.slice(0, lim).map(lin).join('') + '</div></div>' +
       (its.length > lim ? '<button type="button" class="btn btn-largo" data-acao="mais-unid">Mostrar mais ' + Math.min(60, its.length - lim) + ' de ' + (its.length - lim).toLocaleString('pt-BR') + '</button>' : '');
   }
   function barraSelHtml(){
     if(!S.sel.size) return '';
     const projs = new Set([...S.sel.values()].map(v => v.p));
     return '<div class="barra-envio" id="barra-sel"><p><span><b class="num">' + S.sel.size + '</b> ' + (S.sel.size === 1 ? 'unidade' : 'unidades') + '</span><small>' + esc(plural(projs.size, 'projeto', 'projetos')) + '</small></p>' +
-      '<button type="button" class="btn" data-acao="sel-limpar">Limpar</button><button type="button" class="btn btn-pri" data-acao="enviar-sel">' + ICO.enviar + 'Mandar<span class="so-largo">&nbsp;pro cliente</span></button></div>';
+      '<button type="button" class="btn" data-acao="sel-limpar">Limpar</button><button type="button" class="btn btn-pri" data-acao="enviar-sel">' + ICO.enviar + '<span>Mandar<span class="so-largo"> pro cliente</span></span></button></div>';
   }
 
   // painel de filtros (lateral no computador, folha no celular)
@@ -1384,12 +1388,12 @@
     if(!us.length) h += '<p class="texto-2 vazio-txt">' + (S.ui.tabQ.trim() ? 'Nenhuma unidade com “' + esc(S.ui.tabQ.trim()) + '”.' : S.ui.tabFiltro === 'livres' ? 'Nenhuma unidade livre com esse filtro.' : S.ui.tabFiltro === 'mov' ? 'Nenhuma unidade mexeu nas últimas 36 horas.' : 'Nada com esse filtro.') + '</p>';
     const lim = S.ui.tabMostra || 150;
     const temPv = pc.some(x => x.k === 'pv') && modo !== 'pv';
-    if(us.length && largo()){
+    if(us.length && tabelaLarga()){
       h += '<div class="tab-u" role="table" aria-label="Unidades do ' + esc(p.nome) + '"><div class="tu2 cab" role="row"><span role="columnheader"><span class="sr">Marcar</span></span><span role="columnheader">Unidade</span><span role="columnheader">Andar</span><span role="columnheader">Tipologia</span><span role="columnheader" class="dir">Área</span><span role="columnheader">Faixa</span><span role="columnheader">Status</span><span role="columnheader" class="dir">' + esc((pc.find(x => x.k === modo) || {}).label || 'Preço') + '</span>' + (temPv ? '<span role="columnheader" class="dir">À vista</span>' : '<span role="columnheader"></span>') + '<span role="columnheader" class="dir">R$/m²</span><span role="columnheader"><span class="sr">Fluxo</span></span></div>' +
         us.slice(0, lim).map(a => linhaTabela(p, det, a, modo, sel, recentes, temPv)).join('') + '</div>';
     }else if(us.length) h += '<div class="unid" role="list">' + us.slice(0, lim).map(a => unidadeHtml(p, det, a, modo, sel, recentes)).join('') + '</div>';
     if(us.length > lim) h += '<button type="button" class="btn btn-largo" data-acao="tab-mais">Mostrar mais ' + Math.min(200, us.length - lim) + ' de ' + (us.length - lim) + '</button>';
-    if(sel.size) h += '<div class="barra-envio"><p><span><b class="num">' + sel.size + '</b> ' + (sel.size === 1 ? 'unidade' : 'unidades') + '</span><small>' + (sel.size === 1 ? 'marcada' : 'marcadas') + '</small></p><button type="button" class="btn" data-acao="tab-limpar" data-id="' + esc(p.id) + '">Limpar</button><button type="button" class="btn btn-pri" data-acao="enviar" data-id="' + esc(p.id) + '" data-sel="1">' + ICO.enviar + 'Mandar<span class="so-largo">&nbsp;pro cliente</span></button></div>';
+    if(sel.size) h += '<div class="barra-envio"><p><span><b class="num">' + sel.size + '</b> ' + (sel.size === 1 ? 'unidade' : 'unidades') + '</span><small>' + (sel.size === 1 ? 'marcada' : 'marcadas') + '</small></p><button type="button" class="btn" data-acao="tab-limpar" data-id="' + esc(p.id) + '">Limpar</button><button type="button" class="btn btn-pri" data-acao="enviar" data-id="' + esc(p.id) + '" data-sel="1">' + ICO.enviar + '<span>Mandar<span class="so-largo"> pro cliente</span></span></button></div>';
     return h;
   }
   function atualizarTabela(){   // repinta só a lista, sem mexer na busca nem nos botões de cima

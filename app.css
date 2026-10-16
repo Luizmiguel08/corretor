@@ -113,6 +113,8 @@ body.sem-casca #app{padding-bottom:0}
   .lat-pf-txt small{font-size:13px;color:var(--apoio)}
   .t-0{font-size:50px}.t-1{font-size:36px}.t-2{font-size:24px}
 }
+/* notebook de 1024 a 1439 px: margem menor para sobrar espaço às tabelas */
+@media (min-width:1024px) and (max-width:1439.98px){:root{--g:28px}}
 
 /* números em algarismo proporcional: na Mona Sans o tabular troca o desenho (1 com pé e 0 cortado). Colunas de valor alinham à direita. */
 
@@ -356,12 +358,15 @@ body.sem-casca #app{padding-bottom:0}
 .contagem p{margin:0;font-size:15px;line-height:22px;color:var(--apoio2)}
 .contagem b{font-size:19px;font-weight:660;font-stretch:115%;color:var(--texto)}
 @media (min-width:1024px){
-  .imv-grade{grid-template-columns:304px minmax(0,1fr);gap:28px;align-items:start;margin-top:18px}
+  .imv-grade{grid-template-columns:272px minmax(0,1fr);gap:24px;align-items:start;margin-top:18px}
   .imv-col .grade-cards{grid-template-columns:repeat(auto-fill,minmax(226px,1fr))}
 }
-/* lista por unidade */
+@media (min-width:1600px){.imv-grade{grid-template-columns:304px minmax(0,1fr);gap:28px}}
+/* lista por unidade: linha compacta quando falta espaço; tabela de 7 colunas quando a lista tem 660 px ou mais */
+.tab-unid{container-type:inline-size}
 .tu-lin{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:2px 10px;align-items:center;padding:10px 0;border-top:1px solid var(--linha)}
 .tu-lin.marcada{background:color-mix(in srgb,var(--btn) 6%,transparent)}
+.tu-lin.cab,.tu-x,.tu-cat{display:none}
 .tu-ck{grid-row:1 / span 2;align-self:center}
 .tu-proj{display:flex;align-items:center;gap:10px;min-width:0;text-decoration:none;color:var(--texto)}
 .tu-proj > span:last-child{min-width:0;display:flex;flex-direction:column}
@@ -374,15 +379,22 @@ body.sem-casca #app{padding-bottom:0}
 .tu-p{grid-column:3;grid-row:1 / span 2;text-align:right;display:flex;flex-direction:column;align-items:flex-end}
 .tu-p b{font-size:16px;font-weight:660;font-stretch:112%}
 .tu-p small{font-size:12.5px;color:var(--apoio)}
-@media (min-width:1024px){
-  .tab-unid{border:1px solid var(--linha);border-radius:var(--r3);overflow:hidden}
-  .tu-lin{grid-template-columns:44px minmax(190px,1.6fr) 72px minmax(84px,1fr) 76px 60px 70px 58px minmax(112px,1fr) 78px;gap:10px;padding:6px 14px 6px 4px;font-size:14px}
+@container (min-width:660px){
+  .tu-corpo{border:1px solid var(--linha);border-radius:var(--r3);overflow:hidden}
+  .tu-lin{grid-template-columns:44px minmax(144px,3.2fr) minmax(52px,.6fr) minmax(72px,.9fr) minmax(80px,.9fr) minmax(110px,1fr) minmax(80px,.7fr);gap:10px;padding:7px 14px 7px 4px;font-size:14px;line-height:19px}
+  .tu-lin.cab > *{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tu-lin > :last-child{padding-left:12px}
   .tu-lin:first-child{border-top:0}
-  .tu-lin.cab{background:var(--sup);font-size:12.5px;color:var(--apoio);font-weight:560;padding:10px 14px 10px 4px}
-  .tu-ck,.tu-n,.tu-p{grid-row:auto;grid-column:auto}
+  .tu-lin.cab{display:grid;background:var(--sup);font-size:12.5px;line-height:16px;color:var(--apoio);font-weight:560;padding:10px 14px 10px 4px}
   .tu-lin > *{min-width:0}
+  .tu-ck,.tu-n,.tu-p{grid-row:auto;grid-column:auto}
   .tu-n{padding-left:0}
-  .tu-t,.tu-vg,.tu-c,.tu-e{color:var(--apoio2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tu-desc{display:none}
+  .tu-cat{display:block}
+  .tu-x{display:flex;flex-direction:column}
+  .tu-n small,.tu-x small{font-size:12.5px;line-height:16px;color:var(--apoio)}
+  .tu-x span,.tu-x small,.tu-n small,.tu-e{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tu-e{color:var(--apoio2)}
 }
 .ck-btn{width:44px;height:44px;display:flex;align-items:center;justify-content:center;border:0;background:none;padding:0;color:inherit}
 .ck{width:24px;height:24px;border-radius:50%;border:2px solid var(--contorno);display:flex;align-items:center;justify-content:center;transition:background-color .15s,border-color .15s}
@@ -551,12 +563,13 @@ dialog.luz::backdrop{background:#0B0A08}
 .tab-ctl-lin{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .tab-ctl-lin .busca{flex:1 1 220px;max-width:420px}
 .tab-u{border:1px solid var(--linha);border-radius:var(--r3);overflow-x:auto;margin-top:8px}
-.tu2{display:grid;grid-template-columns:44px 72px 82px minmax(110px,1.2fr) 82px 64px minmax(110px,1fr) 124px 116px 92px 84px;gap:8px;align-items:center;padding:4px 14px 4px 4px;font-size:14px;min-width:1010px}
+.tu2{display:grid;grid-template-columns:44px 64px 76px minmax(110px,1.2fr) 72px 64px minmax(104px,1fr) 112px 108px 84px 80px;gap:8px;align-items:center;padding:4px 14px 4px 4px;font-size:14px;min-width:1016px}
+.tu2 > :last-child{padding-left:10px}
 .tu2.cab{background:var(--sup);font-size:12.5px;color:var(--apoio);font-weight:560;padding:10px 14px 10px 4px}
 .tu2 > *{min-width:0}
 .tu2 b{font-weight:650}
 .tu2 .pequeno{padding-left:12px}
-.tu2-bloco{border-top:1px solid var(--linha);min-width:1010px}
+.tu2-bloco{border-top:1px solid var(--linha);min-width:1016px}
 .tu2-bloco.marcada{background:color-mix(in srgb,var(--btn) 6%,transparent)}
 .tu2-bloco.indisp .tu2{color:var(--apoio)}
 .tu2-bloco.novo{box-shadow:inset 3px 0 0 var(--ouro)}
