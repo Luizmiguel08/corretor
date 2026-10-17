@@ -10,7 +10,7 @@
   const LOCAL = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);   // teste local: espelho copiado em /espelhos/
   const ESP = (NO_AR || LOCAL) ? '/espelhos/' : 'https://luizmiguel08.github.io/espelhos/';
   const FN_FOTO = CFG.url + '/functions/v1/corretor-foto';
-  const VERSAO = '2.2.1, de 16/10/2026';
+  const VERSAO = '2.2.2, de 16/10/2026';
   const K = {cod: 'espelhos-codigo', cor: 'espelhos-corretor', dono: 'espelhos-dono', cache: 'corretor-resumo-v2', tema: 'corretor-tema', filtro: 'corretor-filtro-v2'};
   const TZ = 'America/Sao_Paulo';
   const MQ_LARGO = matchMedia('(min-width: 1024px)');
@@ -1104,15 +1104,57 @@
     const add = (src, t, th, mesma) => { if(!src) return; const k = original(src); if(vistos.has(k)) return; vistos.add(k); out.push({src, t: t || '', th: th || (temTamanhos(src) ? tamImg(src, 480) : null), mesma: !!mesma}); };
     if(c && Array.isArray(c.renders)) for(const r of c.renders) add(imgCentral(c, r.id), r.t, imgCentral(c, r.id, true), true);
     if(!out.length) add(det.info && urlImg(det.info.capa), 'Fachada');
-    for(const f of (det.fotos || [])){ if(out.length >= 48) break; add(urlImg(f && f.u), f && f.t, urlImg(f && f.th), /^nex\//.test((f && f.u) || '')); }
+    for(const f of (det.fotos || [])){ if(out.length >= 48) break; if(f && f.k === 'planta') continue; add(urlImg(f && f.u), f && f.t, urlImg(f && f.th), /^nex\//.test((f && f.u) || '')); }
     const mat = det.info && Array.isArray(det.info.material) ? det.info.material : [];
     for(const m of mat) if(m && m.tipo === 'foto') add(urlSegura(m.u), m.t);
+    return out;
+  }
+  // plantas que vêm junto das fotos (info.fotos com k 'planta': a = metragens, fin = finais), como as da Lavvi.
+  // O título diz o resto: "Planta 25,88 m² · studio · finais 03 a 10" ou "· pavimento do 4º ao 6º e 9º ao 14º andar"
+  function finaisDoTitulo(t){
+    const m = /\bfina(?:l|is)\s+([^·(]+)/i.exec(String(t || '')); if(!m) return [];
+    const out = [];
+    for(const parte of m[1].trim().split(/\s*,\s*|\s+e\s+/i)){
+      const r = /^(\d{1,3})(?:\s+a\s+(\d{1,3}))?$/i.exec(parte.trim());
+      if(!r) return [];   // final com letra (1A, 14B) ou texto: sem como comparar
+      const x = +r[1], y = r[2] != null ? +r[2] : x;
+      if(y < x || y - x > 60) return [];
+      for(let k = x; k <= y; k++) out.push(k);
+    }
+    return out;
+  }
+  function andaresDoTitulo(t){
+    const out = [], re = /((?:\d{1,2}[º°]\s*(?:ao|a|,|e)?\s*)+)\s*andar(?:es)?\b/gi;
+    let m;
+    while((m = re.exec(String(t || '')))){
+      let prev = null, faixa = false;
+      for(const tk of m[1].match(/\d{1,2}[º°]|\bao\b|\ba\b/gi) || []){
+        if(/[º°]$/.test(tk)){ const n = parseInt(tk, 10); if(faixa && prev != null){ out.push([prev, n]); prev = null; } else { if(prev != null) out.push([prev, prev]); prev = n; } faixa = false; }
+        else faixa = true;
+      }
+      if(prev != null) out.push([prev, prev]);
+    }
+    return out;
+  }
+  function plantasFotos(det){
+    const out = [];
+    for(const f of (det && det.fotos) || []){
+      if(!f || f.k !== 'planta') continue;
+      const src = urlImg(f.u); if(!src) continue;
+      const tt = String(f.t || 'Planta').trim(), partes = tt.split(/\s+·\s+/);
+      let fins = Array.isArray(f.fin) ? f.fin.map(x => /^\d{1,3}$/.test(String(x).trim()) ? +x : NaN) : [];
+      if(fins.some(isNaN)) fins = [];
+      if(!fins.length) fins = finaisDoTitulo(tt);
+      out.push({src, t: partes[0], sub: partes.slice(1).join(', '), tt, as: (Array.isArray(f.a) ? f.a : []).map(Number).filter(x => x > 0), fins, andares: andaresDoTitulo(tt),
+        pav: /pavimento/i.test(tt), opc: /op[cç][aã]o|ampliad|outra vers/i.test(tt), tec: /t[eé]cnica/i.test(tt)});
+    }
     return out;
   }
   function plantasDoProjeto(det, c){
     const out = [];
     if(c && Array.isArray(c.plantas)) for(const pl of c.plantas) out.push({src: imgCentral(c, pl.id), t: pl.t ? 'Planta ' + pl.t : 'Planta', sub: pl.andares ? pl.andares + (pl.finais && pl.finais.length ? ', finais ' + pl.finais.map(x => String(x).padStart(2, '0')).join(', ') : '') : ''});
     if(!out.length && det.info && Array.isArray(det.info.plantas)) for(const pl of det.info.plantas){ const u = urlImg(pl && pl.u); if(u) out.push({src: u, t: pl.t || 'Planta', sub: pl.a || ''}); }
+    if(!out.length){ const pf = plantasFotos(det); for(const x of pf.filter(y => !y.pav).concat(pf.filter(y => y.pav))) out.push({src: x.src, t: x.t, sub: x.sub}); }
     const mat = det.info && Array.isArray(det.info.material) ? det.info.material : [];
     for(const m of mat) if(m && m.tipo === 'planta' && urlSegura(m.u)) out.push({src: m.u, t: m.t || 'Planta', sub: ''});
     return out;
@@ -1988,9 +2030,32 @@
       const cands = c.plantas.map(x => { const m = /(\d+(?:[.,]\d+)?)\s*m²/.exec(String(x.t || '')); return {x, m: m ? +m[1].replace(',', '.') : null}; }).filter(o => o.m && (!tk || tipoKDe(o.x.t) === tk));
       if(ar > 0 && cands.length){ cands.sort((x, y) => Math.abs(x.m - ar) - Math.abs(y.m - ar)); if(Math.abs(cands[0].m - ar) <= 2) return {src: imgCentral(c, cands[0].x.id), t: 'Planta ' + cands[0].x.t, sub: cands[0].x.andares || '', exata: false}; }
     }
+    // plantas que vieram junto das fotos (com metragens e finais): a do final da unidade, na metragem e no andar dela
+    const pf = plantasFotos(det);
+    if(pf.length){
+      const ar = areaU(a);
+      const cands = pf.filter(x => !x.pav).map(x => {
+        const fOk = x.fins.length && fin != null ? x.fins.includes(fin) : null;   // true, false ou sem informação
+        const d = ar > 0 && x.as.length ? Math.min(...x.as.map(v => Math.abs(v - ar))) : 99;
+        const faixa = ar > 0 && x.as.length >= 2 && ar >= Math.min(...x.as) - 0.3 && ar <= Math.max(...x.as) + 0.3;
+        const andarOk = !x.andares.length || an == null || x.andares.some(([de, ate]) => an >= de && an <= ate);
+        return {x, fOk, d, aOk: d <= 0.6 || faixa, andarOk};
+      }).filter(o => o.fOk !== false && o.andarOk && (o.aOk || (o.fOk && o.d <= 3)));
+      if(!cands.length) return null;
+      cands.sort((p, q) => (q.fOk === true) - (p.fOk === true) || p.x.opc - q.x.opc || p.x.tec - q.x.tec || p.d - q.d);
+      const m = cands[0], op = cands.find(o => o !== m && o.x.opc && !o.x.tec && Math.abs(o.d - m.d) < 0.6);
+      return {src: m.x.src, t: m.x.t, sub: m.x.sub, exata: m.fOk === true || m.d <= 0.05, opcao: op ? {src: op.x.src, t: op.x.t + (op.x.sub ? ', ' + op.x.sub : '')} : null};
+    }
     const outras = plantasDoProjeto(det, c).filter(x => x.src), tn = norm(tl).replace(/\./g, '');
     const hit = outras.find(x => tn && norm(x.t).replace(/\./g, '').includes(tn)) || (outras.length === 1 ? outras[0] : null);
     return hit ? {src: hit.src, t: hit.t, sub: hit.sub || '', exata: false} : null;
+  }
+  function pavimentoDaUnidade(det, a){   // planta do andar inteiro que veio junto das fotos (sem a unidade marcada)
+    const an = andarNum(a); if(an == null) return null;
+    const ps = plantasFotos(det).filter(x => x.pav && x.andares.some(([de, ate]) => an >= de && an <= ate));
+    if(!ps.length) return null;
+    const ar = areaU(a), x = ps.find(p => !(ar > 0) || !p.as.length || p.as.some(v => Math.abs(v - ar) <= 0.6)) || ps[0];
+    return {src: x.src, t: x.t, sub: x.sub};
   }
   function andarDaUnidade(det, c, a){   // planta do pavimento com a unidade marcada
     if(!c || !Array.isArray(c.andar_img)) return null;
@@ -2026,7 +2091,9 @@
     const pl = plantaDaUnidade(det, c, a), ad = andarDaUnidade(det, c, a), vs = vistaDaUnidade(det, c, a);
     const luz = [];
     let mid = '';
-    if(pl){ luz.push({src: pl.src, t: pl.t + (pl.sub ? ', ' + pl.sub : '')}); mid += '<figure class="planta un-planta"><button type="button" class="mos-item" data-acao="luz-un" data-i="' + (luz.length - 1) + '" aria-label="' + esc('Ampliar a ' + pl.t) + '">' + imgTag(pl.src, pl.t, '', {w: 900, semSet: true}) + '</button><figcaption>' + esc(pl.exata ? pl.t : pl.t + ' (da tipologia)') + (pl.sub ? '<small>' + esc(pl.sub) + '</small>' : '') + '</figcaption></figure>'; }
+    if(pl){ const ip = luz.push({src: pl.src, t: pl.t + (pl.sub ? ', ' + pl.sub : '')}) - 1; if(pl.opcao) luz.push(pl.opcao); mid += '<figure class="planta un-planta"><button type="button" class="mos-item" data-acao="luz-un" data-i="' + ip + '" aria-label="' + esc('Ampliar a ' + pl.t) + '">' + imgTag(pl.src, pl.t, '', {w: 900, semSet: true}) + '</button><figcaption>' + esc(pl.exata ? pl.t : pl.t + ' (da tipologia)') + (pl.sub ? '<small>' + esc(pl.sub) + '</small>' : '') + (pl.opcao ? '<small>Tem opção de planta: amplie para ver.</small>' : '') + '</figcaption></figure>'; }
+    const pv = ad ? null : pavimentoDaUnidade(det, a);
+    if(pv){ luz.push({src: pv.src, t: 'Planta do andar' + (pv.sub ? ', ' + pv.sub : '')}); mid += '<figure class="planta un-planta"><button type="button" class="mos-item" data-acao="luz-un" data-i="' + (luz.length - 1) + '" aria-label="Ampliar a planta do andar">' + imgTag(pv.src, 'Planta do ' + andarTxt(a[4]), '', {w: 1200, semSet: true}) + '</button><figcaption>Planta do andar' + (pv.sub ? '<small>' + esc(maiusc1(pv.sub)) + '</small>' : '') + '</figcaption></figure>'; }
     if(ad){ luz.push({src: ad.src, t: 'Posição no andar'}); mid += '<figure class="planta un-andar-f"><button type="button" class="un-andar" data-acao="luz-un" data-i="' + (luz.length - 1) + '" aria-label="Ampliar a planta do andar">' + imgTag(ad.src, 'Planta do ' + andarTxt(a[4]), '', {w: 1200, semSet: true}) + ad.rs.map(r => '<i style="left:' + r.x.toFixed(2) + '%;top:' + r.y.toFixed(2) + '%;width:' + r.w.toFixed(2) + '%;height:' + r.h.toFixed(2) + '%"></i>').join('') + '</button><figcaption>Posição no andar<small>Unidade ' + esc(n) + ' em destaque</small></figcaption></figure>'; }
     if(vs){ luz.push({src: vs.src, t: vs.t + ', ' + vs.sub}); mid += '<figure class="planta un-vista"><button type="button" class="mos-item" data-acao="luz-un" data-i="' + (luz.length - 1) + '" aria-label="Ampliar a foto da vista">' + imgTag(vs.src, vs.t, '', {w: 900, semSet: true}) + '</button><figcaption>' + esc(vs.t) + '<small>' + esc(vs.sub) + '</small></figcaption></figure>'; }
     S.unLuz = luz;
