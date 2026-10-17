@@ -1121,3 +1121,13 @@ body.sem-casca .toast{bottom:24px}
 .btn-linha.tres .btn{padding:0 8px}
 .un-pers:empty{display:none}
 a.opcao{text-decoration:none}
+
+/* 2.2.3: material oficial da construtora no Baixar e enviar */
+.mat-of{display:flex;flex-direction:column;gap:6px}
+.mat-of .t-3{margin:0}
+.mat-of .q{font-size:14px;color:var(--apoio);font-weight:560}
+.mat-of-docs li{display:flex;align-items:center;gap:4px}
+.mat-of-docs li > a{flex:1;min-width:0}
+.mat-of-docs .mat-cp{color:var(--apoio2)}
+.mat-of-docs .mat-cp:hover{background:var(--sup2);color:var(--texto)}
+.mat-of-docs .mat-cp svg{width:20px;height:20px}

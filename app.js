@@ -10,7 +10,7 @@
   const LOCAL = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);   // teste local: espelho copiado em /espelhos/
   const ESP = (NO_AR || LOCAL) ? '/espelhos/' : 'https://luizmiguel08.github.io/espelhos/';
   const FN_FOTO = CFG.url + '/functions/v1/corretor-foto';
-  const VERSAO = '2.2.2, de 16/10/2026';
+  const VERSAO = '2.2.3, de 17/10/2026';
   const K = {cod: 'espelhos-codigo', cor: 'espelhos-corretor', dono: 'espelhos-dono', cache: 'corretor-resumo-v2', tema: 'corretor-tema', filtro: 'corretor-filtro-v2'};
   const TZ = 'America/Sao_Paulo';
   const MQ_LARGO = matchMedia('(min-width: 1024px)');
@@ -2910,8 +2910,35 @@
       op('pdf-ficha', ICO.arquivo, 'Ficha do projeto em PDF', 'Fotos, tipologias, preços, lazer e plantas') +
       op('planilha-tabela', ICO.planilha, 'Tabela em planilha (Excel)', nU + ', com preços e fluxo') +
       op('pdf-tabela', ICO.imprimir, 'Tabela em PDF', nU + ', para imprimir ou mandar') +
-      '</div>' + (!fotos.length ? '<p class="nota">Este projeto ainda não tem fotos publicadas.</p>' : '') +
+      '</div>' + materialOficialHtml(p, det, c) + (!fotos.length ? '<p class="nota">Este projeto ainda não tem fotos publicadas.</p>' : '') +
       '<p class="nota">Os PDFs abrem a janela de impressão do aparelho. Escolha "Salvar como PDF".</p>';
+  }
+  // material oficial da construtora no "Baixar e enviar" (material técnico, book do cliente, book de vistas, cartilha,
+  // implantação e os documentos da central), com Abrir e Copiar link, como na central dos Espelhos (2.2.3)
+  function materialOficialDe(p, det, c){
+    const out = [], vistos = new Set();
+    const add = (id, u, t, s, x) => { const k = id || u; if(!k || vistos.has(k)) return; vistos.add(k); out.push({u, t, s, x}); };
+    for(const m of ((c && Array.isArray(c.material_oficial)) ? c.material_oficial : [])){
+      if(!m) continue;
+      const u = m.id ? driveArq(m.id) : urlSegura(m.u); if(!u) continue;
+      const nome = m.n && m.n !== m.c ? String(m.n) : '';
+      add(m.id, u, m.c || m.n || 'Material da construtora', [nome, m.id ? String(m.ext || 'pdf').toUpperCase() : (/folders/.test(u) ? 'Pasta no Drive' : 'Link'), m.mb ? String(m.mb).replace('.', ',') + ' MB' : ''].filter(Boolean).join(', '), m.id ? (m.ext || 'pdf') : (/folders/.test(u) ? 'pasta' : 'link'));
+    }
+    const dp = det.docs && det.docs.projeto && det.docs.projeto.id === p.id ? det.docs.projeto : null;
+    for(const x of ((dp && Array.isArray(dp.docs)) ? dp.docs : [])){
+      if(!x) continue;
+      const u = urlSegura(x.u) || (x.id && x.x !== 'link' && !/^[a-z]+-/.test(x.id) ? driveArq(x.id) : null); if(!u) continue;
+      add(x.id, u, x.t || x.a || 'Documento', [x.a, x.d].filter(Boolean).join(', '), x.x || 'pdf');
+    }
+    for(const m of (Array.isArray(det.info && det.info.material) ? det.info.material : [])) if(m && (m.tipo === 'pdf' || m.tipo === 'video') && urlSegura(m.u)) add(null, m.u, m.t || (m.tipo === 'pdf' ? 'PDF' : 'Vídeo'), m.tipo === 'pdf' ? 'PDF' : 'Vídeo', m.tipo === 'pdf' ? 'pdf' : 'mp4');
+    return out;
+  }
+  function materialOficialHtml(p, det, c){
+    const docs = materialOficialDe(p, det, c); if(!docs.length) return '';
+    return '<section class="mat-of" aria-labelledby="mat-of-t"><h3 class="t-3" id="mat-of-t">Material da construtora <span class="q">' + docs.length + '</span></h3>' +
+      '<p class="nota">Arquivos originais da construtora. Abra no Drive ou copie o link para mandar ao cliente.</p><ul class="docs mat-of-docs">' +
+      docs.slice(0, 24).map(d => '<li><a href="' + esc(d.u) + '" target="_blank" rel="noopener" aria-label="' + esc('Abrir ' + d.t) + '"><span class="tipo" aria-hidden="true">' + esc(String(d.x).slice(0, 4)) + '</span><span class="t"><b>' + esc(d.t) + '</b>' + (d.s ? '<small>' + esc(d.s) + '</small>' : '') + '</span></a>' +
+        '<button type="button" class="ico-btn mat-cp" data-acao="mat-copiar" data-u="' + esc(d.u) + '" data-t="' + esc((p.nome || '') + ' · ' + d.t) + '" aria-label="' + esc('Copiar o link de ' + d.t) + '">' + ICO.copiar + '</button></li>').join('') + '</ul></section>';
   }
   async function prepararArquivos(id, tipo){   // tipo: fotos, plantas ou enviar (10 fotos para o WhatsApp)
     const p = S.byId.get(id); if(!p) return;
@@ -3365,6 +3392,7 @@
       // ---- perfil
       case 'tema': LS.set(K.tema, v); aplicarTema(v); $$('[data-acao="tema"]').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === v)); break;
       case 'sair': sair(''); break;
+      case 'mat-copiar': copiar(el.dataset.t + ': ' + el.dataset.u, 'Link copiado. É só colar no WhatsApp do cliente.'); break;
     }
   });
   const espera = {};
